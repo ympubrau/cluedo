@@ -27,7 +27,6 @@ function sign_in() {
 }
 
 function register() {
-
     const url = "https://sql.lavro.ru/call.php?";
     let form = new FormData(document.getElementById('regForm'));
     let fd = new FormData();
@@ -56,35 +55,26 @@ function signInRes(e){
     console.log(e)
     if (checkSqlErrors(e)){
         token = e.RESULTS[0].token[0];
-        console.log(token);
         window.location.href = ("roomState.html");
+        deleteCookies();
+        setCookie('token',token)
+        console.log(token);
     }
 }
 
-function newGame() {
-    const url = "https://sql.lavro.ru/call.php?";
-    let form = new FormData(document.getElementById('createForm'));
-    let fd = new FormData();
-    fd.append('pname', 'sign_in');
-    fd.append('db', '283909');
-    fd.append('p1', form.get('user_name'));
-    fd.append('p2', form.get('user_password'));
-    fd.append('format', 'columns_compact');
 
-    fetch(url, {
-        method: "POST",
-        body: fd
-    }).then((response) => {
-        if (response.ok){
-            return response.json()
-        }
-        else {
-            return show_error('ошибка сети)');
-        }
-    }).then((responseJSON) => {
-        signInRes(responseJSON)
-    });
+function newGame() {
+    console.log(getCookie('token'))
+    const url = "https://sql.lavro.ru/call.php?";
+    var pass = document.getElementById('gamePassInput').value;
+    let fd = new FormData();
+    fd.append('pname', 'new_game');
+    fd.append('db', '283909');
+    fd.append('p1', token);
+    fd.append('p2', pass);
+    fd.append('format', 'columns_compact');
 }
+
 
 function show_game(e) {
     if (check_errors(e)) {
@@ -116,4 +106,45 @@ function checkSqlErrors(e) {
         return true;
     }
 }
+
+function getCookie(name) {
+    let matches = document.cookie.match(new RegExp(
+        "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+    ));
+    return matches ? decodeURIComponent(matches[1]) : undefined;
+}
+
+
+function deleteCookies() {
+    var allCookies = document.cookie.split(';');
+    for (var i = 0; i < allCookies.length; i++)
+        document.cookie = allCookies[i] + "=;expires="
+            + new Date(0).toUTCString();
+}
+
+function setCookie(name, value, options = {}) {
+
+    options = {
+        path: '/',
+        // при необходимости добавьте другие значения по умолчанию
+        ...options
+    };
+
+    if (options.expires instanceof Date) {
+        options.expires = options.expires.toUTCString();
+    }
+
+    let updatedCookie = encodeURIComponent(name) + "=" + encodeURIComponent(value);
+
+    for (let optionKey in options) {
+        updatedCookie += "; " + optionKey;
+        let optionValue = options[optionKey];
+        if (optionValue !== true) {
+            updatedCookie += "=" + optionValue;
+        }
+    }
+
+    document.cookie = updatedCookie;
+}
+
 

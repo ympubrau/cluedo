@@ -10,51 +10,81 @@
 <h1>Добро пожаловать в комнату ожидания!</h1>
 
 
-<div>
+<div class="leftHalf">
     <div class="form">
-        <h2>Здесь вы можете создать свою игровую комнату:</h2>
-        <form id="createForm" method="post" onsubmit="new_game()">
+        <h3>Здесь вы можете создать свою игровую комнату:</h3>
+        <div>
+            <label style="display: inline-block; width: 100%;">Пароль для игры (если вы хотите создать открытую комнату - оставьте поле пустым)</label>
+            <input id="gamePassInput" type="text" value="">
+        </div>
+        <button id="newGameBtn" onclick="newGame()">Войти</button>
+    </div>
+
+
+    <div class="form">
+        <h3>Здесь вы можете войти в существующую комнату используя токен комнаты:</h3>
+        <form id="joinForm" method="post" onsubmit="newGame()">
             <div>
-                <label style="display: inline-block; width: 100%;">Пароль для игры (если вы хотите создать открытую комнату - оставьте поле пустым)</label>
-                <input name="game_pass" type="text" value="">
+                <label for="game_token" style="display: inline-block; width: 100%;">Токен комнаты</label>
+                <input id="game_token" type="text" value="">
+                <label style="display: inline-block; width: 100%;">Пароль</label>
+                <input id="game_pass" type="text" value="">
             </div>
-            <button type="button" onclick="sign_in()">Войти</button>
+            <button type="submit">Войти</button>
         </form>
     </div>
 
-    <h4>Игроки в комнате:</h4>
-    <div class="listPLayers"></div>
+    <div class="form">
+        <h3>Либо вы можете подключиться к уже существующим играм без пароля</h3>
+        <form id="joinNoPassForm" method="post" onsubmit="newGame()">
+            <div>
+                <label style="display: inline-block; width: 100%;">Токен комнаты</label>
+                <input name="game_token" type="text" value="">
+            </div>
+            <button type="submit">Войти</button>
+        </form>
+    </div>
+</div>
 
-    <h4>Персонажи:</h4>
-    <div class="personas">
-        <div class="orchid">
-            <img src="img/orchid.png" alt="orchid">
-            <span id="orchid">qweqwe</span>
-        </div>
-        <div class="peacock">
-            <img src="img/peacock.png" alt="peacock">
-            <span id="peacock">qweqwe</span>
-        </div>
-        <div class="scarlet">
-            <img src="img/scarlet.png" alt="scarlet">
-            <span id="scarlet">qweqwe</span>
-        </div>
-        <div class="mustard">
-            <img src="img/mustard.png" alt="mustard">
-            <span id="mustard">qweqweqw</span>
-        </div>
-        <div class="plum">
-            <img src="img/plum.png" alt="plum">
-            <span id="plum">qweqwe</span>
-        </div>
-        <div class="green">
-            <img src="img/green.png" alt="green">
-            <span id="green">qweqew</span>
-        </div>
 
+<div class="RightHalf">
+    <div class="gameInfo">
+        <h4>Игроки в комнате:</h4>
+        <div class="listPLayers"></div>
+
+        <h4>Персонажи:</h4>
+        <div class="personas">
+            <div class="orchid">
+                <img src="img/orchid.png" alt="orchid">
+                <span id="orchid">qweqwe</span>
+            </div>
+            <div class="peacock">
+                <img src="img/peacock.png" alt="peacock">
+                <span id="peacock">qweqwe</span>
+            </div>
+            <div class="scarlet">
+                <img src="img/scarlet.png" alt="scarlet">
+                <span id="scarlet">qweqwe</span>
+            </div>
+            <div class="mustard">
+                <img src="img/mustard.png" alt="mustard">
+                <span id="mustard">qweqweqw</span>
+            </div>
+            <div class="plum">
+                <img src="img/plum.png" alt="plum">
+                <span id="plum">qweqwe</span>
+            </div>
+            <div class="green">
+                <img src="img/green.png" alt="green">
+                <span id="green">qweqew</span>
+            </div>
+
+        </div>
     </div>
 </div>
 
 
 </body>
+
+<script src="script.js"></script>
 </html>

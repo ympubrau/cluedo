@@ -1,3 +1,7 @@
+body {
+    min-width: 1000px;
+}
+
 .field {
     width: 200px;
     height: 200px;
@@ -38,4 +42,21 @@
     width: 150px;
     text-align: center;
     vertical-align: middle;
+}
+
+.leftHalf{
+    display: block;
+    position: absolute;
+    min-width: 500px;
+    width: 50%;
+    left: 10px;
+}
+
+.RightHalf{
+    display: block;
+
+    position: absolute;
+    min-width: 500px;
+    width: 50%;
+    right: 0;
 }
