@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="style.css" rel="stylesheet">
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<div class="status"></div>
+<h1>Добро пожаловать в комнату ожидания!</h1>
+
+
+<div>
+    <div class="form">
+        <h2>Здесь вы можете создать свою игровую комнату:</h2>
+        <form id="createForm" method="post" onsubmit="new_game()">
+            <div>
+                <label style="display: inline-block; width: 100%;">Пароль для игры (если вы хотите создать открытую комнату - оставьте поле пустым)</label>
+                <input name="game_pass" type="text" value="">
+            </div>
+            <button type="button" onclick="sign_in()">Войти</button>
+        </form>
+    </div>
+
+    <h4>Игроки в комнате:</h4>
+    <div class="listPLayers"></div>
+
+    <h4>Персонажи:</h4>
+    <div class="personas">
+        <div class="orchid">
+            <img src="img/orchid.png" alt="orchid">
+            <span id="orchid">qweqwe</span>
+        </div>
+        <div class="peacock">
+            <img src="img/peacock.png" alt="peacock">
+            <span id="peacock">qweqwe</span>
+        </div>
+        <div class="scarlet">
+            <img src="img/scarlet.png" alt="scarlet">
+            <span id="scarlet">qweqwe</span>
+        </div>
+        <div class="mustard">
+            <img src="img/mustard.png" alt="mustard">
+            <span id="mustard">qweqweqw</span>
+        </div>
+        <div class="plum">
+            <img src="img/plum.png" alt="plum">
+            <span id="plum">qweqwe</span>
+        </div>
+        <div class="green">
+            <img src="img/green.png" alt="green">
+            <span id="green">qweqew</span>
+        </div>
+
+    </div>
+</div>
+
+
+</body>
+</html>

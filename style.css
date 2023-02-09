@@ -1,0 +1,41 @@
+.field {
+    width: 200px;
+    height: 200px;
+    display: grid;
+    grid-template-columns: 50% 50%;
+    grid-template-rows: 50% 50%;
+}
+
+.cell {
+    border: 1px solid black;
+}
+
+.form{
+    margin: 0 auto;
+    padding-bottom: 15px;
+}
+
+.form form, button{
+    margin: 15px 0;
+}
+
+.form .labe{
+    display: inline-block;
+    width: 50px;
+}
+
+.personas img{
+    width: 150px;
+    height: 225px;
+}
+
+.personas div{
+    display: inline-block;
+    max-width: 150px;
+}
+
+.personas span{
+    width: 150px;
+    text-align: center;
+    vertical-align: middle;
+}

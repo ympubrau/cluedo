@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cluedo</title>
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+<div class="status"></div>
+<h2>Войдите или зарегистрируйтесь!</h2>
+
+<div class="form">
+    <h3>Вход:</h3>
+    <form id="logForm" method="post" onsubmit="sign_in()">
+        <div>
+            <label class="labe">Логин</label>
+            <input name="user_name" type="text"  value="">
+        </div>
+        <div>
+            <label style="display: inline-block" class="labe">Пароль</label>
+            <input name="user_password" type="password" value="">
+        </div>
+        <button type="button" onclick="sign_in()">Создать игру</button>
+    </form>
+</div>
+
+<div class="form">
+    <h3>Регистрация:</h3>
+    <form id="regForm" method="post" onsubmit="register()">
+        <div>
+            <label>Логин</label>
+            <input name="user_name" type="text"  value="">
+        </div>
+        <div>
+            <label>Пароль</label>
+            <input name="user_password" type="password" value="">
+        </div>
+        <button type="button" onclick="register()">Зарегистрироваться</button>
+    </form>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
