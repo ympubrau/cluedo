@@ -29,11 +29,14 @@ body {
 }
 
 .personas img{
+    border: 5px solid green;
     width: 150px;
     height: 225px;
 }
 
 .personas div{
+    margin-right: 1em;
+    padding-bottom: 2em;
     display: inline-block;
     max-width: 150px;
 }
@@ -42,6 +45,12 @@ body {
     width: 150px;
     text-align: center;
     vertical-align: middle;
+}
+
+.choosable:hover{
+    background-color: black;
+    opacity: 20%;
+    cursor: pointer;
 }
 
 .leftHalf{
@@ -54,9 +63,13 @@ body {
 
 .RightHalf{
     display: block;
-
     position: absolute;
     min-width: 500px;
     width: 50%;
     right: 0;
+}
+
+.chosen{
+    border: 5px solid red !important;
+    color: green;
 }

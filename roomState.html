@@ -14,72 +14,75 @@
     <div class="form">
         <h3>Здесь вы можете создать свою игровую комнату:</h3>
         <div>
-            <label style="display: inline-block; width: 100%;">Пароль для игры (если вы хотите создать открытую комнату - оставьте поле пустым)</label>
+            <label style="display: inline-block; width: 100%;">Пароль для игры (если вы хотите сгенерировать пароль для комнаты введите - 1)</label>
             <input id="gamePassInput" type="text" value="">
         </div>
-        <button id="newGameBtn" onclick="newGame()">Войти</button>
+        <button onclick="newGame()">Создать</button>
     </div>
 
 
     <div class="form">
-        <h3>Здесь вы можете войти в существующую комнату используя токен комнаты:</h3>
-        <form id="joinForm" method="post" onsubmit="newGame()">
-            <div>
-                <label for="game_token" style="display: inline-block; width: 100%;">Токен комнаты</label>
-                <input id="game_token" type="text" value="">
-                <label style="display: inline-block; width: 100%;">Пароль</label>
-                <input id="game_pass" type="text" value="">
-            </div>
-            <button type="submit">Войти</button>
-        </form>
+        <h3>Здесь вы можете войти в существующую комнату используя токен комнаты и пароль(если он нужен):</h3>
+        <div>
+            <label for="game_token" style="display: inline-block; width: 100%;">Токен комнаты</label>
+            <input id="game_token" type="text" value="">
+            <label style="display: inline-block; width: 100%;">Пароль</label>
+            <input id="game_pass" type="text" value="">
+        </div>
+        <button onclick="connectGame()">Войти</button>
     </div>
 
     <div class="form">
-        <h3>Либо вы можете подключиться к уже существующим играм без пароля</h3>
-        <form id="joinNoPassForm" method="post" onsubmit="newGame()">
-            <div>
-                <label style="display: inline-block; width: 100%;">Токен комнаты</label>
-                <input name="game_token" type="text" value="">
-            </div>
-            <button type="submit">Войти</button>
-        </form>
+        <h3>Список доступных игр</h3>
+        <div id="freeGames"></div>
     </div>
 </div>
 
 
 <div class="RightHalf">
-    <div class="gameInfo">
+    <div class="gameInfo" id="gameInfo" hidden>
+
+        <h4>Номер комнаты:</h4>
+        <div id="gameId"></div>
+
         <h4>Игроки в комнате:</h4>
-        <div class="listPLayers"></div>
+        <div id="listPLayers"></div>
+
+        <h4>Админ комнаты:</h4>
+        <div id="gameAdmin"></div>
+
+        <h4>Пароль комнаты:</h4>
+        <div id="gamePass"></div>
+
 
         <h4>Персонажи:</h4>
         <div class="personas">
-            <div class="orchid">
-                <img src="img/orchid.png" alt="orchid">
-                <span id="orchid">qweqwe</span>
+            <div class="orchid" onclick="choosePersonaSql('orchid')">
+                <img class="choosable" id="orchidIMG" src="img/orchid.png" alt="orchid">
+                <span id="orchid">Свободно</span>
             </div>
-            <div class="peacock">
-                <img src="img/peacock.png" alt="peacock">
-                <span id="peacock">qweqwe</span>
+            <div class="peacock" onclick="choosePersonaSql('peacock')">
+                <img class="choosable" id="peacockIMG" src="img/peacock.png" alt="peacock">
+                <span id="peacock">Свободно</span>
             </div>
-            <div class="scarlet">
-                <img src="img/scarlet.png" alt="scarlet">
-                <span id="scarlet">qweqwe</span>
+            <div class="scarlet" onclick="choosePersonaSql('scarlet')">
+                <img class="choosable" id="scarletIMG" src="img/scarlet.png" alt="scarlet">
+                <span id="scarlet">Свободно</span>
             </div>
-            <div class="mustard">
-                <img src="img/mustard.png" alt="mustard">
-                <span id="mustard">qweqweqw</span>
+            <div class="mustard" onclick="choosePersonaSql('mustard')">
+                <img class="choosable" id="mustardIMG" src="img/mustard.png" alt="mustard">
+                <span id="mustard">Свободно</span>
             </div>
-            <div class="plum">
-                <img src="img/plum.png" alt="plum">
-                <span id="plum">qweqwe</span>
+            <div class="plum" onclick="choosePersonaSql('plum')">
+                <img class="choosable" id="plumIMG" src="img/plum.png" alt="plum">
+                <span id="plum">Свободно</span>
             </div>
-            <div class="green">
-                <img src="img/green.png" alt="green">
-                <span id="green">qweqew</span>
+            <div class="green" onclick="choosePersonaSql('green')">
+                <img class="choosable" id="greenIMG" src="img/green.png" alt="green">
+                <span id="green">Свободно</span>
             </div>
-
         </div>
+        <button onclick="document.location.reload()" style="background: red; color: white">Покинуть Комнату</button>
     </div>
 </div>
 
