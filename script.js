@@ -60,17 +60,15 @@ function signInRes(e, qwe){
     console.log(e)
     if (checkSqlErrors(e)){
         token = e.RESULTS[0].token[0];
+        deleteCookies();
+        if (qwe !== undefined){
+            setCookie('login', qwe)
+        }
+        setCookie('token',token)
+        console.log(getCookie('token'))
         window.location.href = ("roomState.html");
         const q = setInterval(null,5000);
         clearInterval(q)
-        deleteCookies();
-        console.log(qwe)
-        if (q !== undefined){
-            setCookie('login', qwe)
-        }
-
-        setCookie('token',token)
-
     }
 }
 
@@ -116,6 +114,7 @@ function displayFreeGames(gameList){
     let destDiv = document.getElementById('freeGames')
     console.log(gameList)
     if (gameList.available_games === undefined){
+        destDiv.innerHTML = ' '
         destDiv.innerHTML += "<p>No free rooms available</p>"
     }
     else{
