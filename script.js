@@ -189,10 +189,12 @@ function inGameNow(e){
     if (checkSqlErrors(e)){
         document.getElementById("gameInfo").removeAttribute('hidden')
         game_id = e.RESULTS[0].Game_id[0];
+
         if (e.RESULTS[1].Game_password !== undefined){
             pass = e.RESULTS[1].Game_password[0]
         }
-
+        setCookie('gameID', game_id)
+        setCookie('pass', pass)
         const url = "https://sql.lavro.ru/call.php?";
         let fd = new FormData();
         fd.append('pname', 'room_state');
@@ -219,7 +221,6 @@ function inGameNow(e){
                 });
             }
             else {
-                console.log('finished')
                 clearInterval(interval);
             }
         }, 5000);
@@ -245,8 +246,15 @@ function updateRoomInfo(e){
     gAdmin.innerHTML = ' '
     gAdmin.innerHTML = '<div>'  + e.RESULTS[1].game_admin + '</div>'
 
+    console.log(getCookie('login'))
+    console.log(e.RESULTS[1].game_admin)
+    if (getCookie('login') === e.RESULTS[1].game_admin[0]){
+        document.getElementById('gameStart').removeAttribute('hidden')
+    }
+
     pass === null ? gPass.innerHTML = '<div>У данной комнаты нет пароля</div>' : gPass.innerHTML = '<div>' + pass + '</div>'
 
+    clearPersonas();
     let counter = 0;
     for (let a of e.RESULTS[3].login){
         if (a === getCookie('login')) {
@@ -254,10 +262,22 @@ function updateRoomInfo(e){
             continue;
         }
         if (e.RESULTS[3].description[counter] !== null){
-            console.log('qew')
             choosePersona(convertPersona(e.RESULTS[3].description[counter]),a)
         }
         counter++;
+    }
+}
+
+function clearPersonas(){
+    for (let i = 1; i < personas.length; i++){
+        if (personas[i] === chosenPersona) continue;
+
+        let e = document.getElementById(personas[i] + 'IMG');
+        if (e.classList.contains('chosen')){
+            e.classList.remove('chosen')
+            e.classList.add('choosable')
+            document.getElementById(personas[i]).innerHTML = 'Свободно'
+        }
     }
 }
 
@@ -305,21 +325,18 @@ function choosePersonaSql(e){
             return show_error('ошибка сети)');
         }
     }).then((responseJSON) => {
-        console.log(responseJSON);
         choosePersona(e)
     });
 }
 
 
 function choosePersona(pers, nickname){
-    console.log(pers)
-    console.log(nickname)
     let orc;
     if (nickname === undefined){
         if (chosenPersona === pers) return;
 
         if (chosenPersona !== 0){
-            orc = document.getElementById(chosenPersona + 'IMG');
+            let orc = document.getElementById(chosenPersona + 'IMG');
             orc.classList.remove('chosen')
             orc.classList.add("choosable");
             orc = document.getElementById(chosenPersona)
@@ -329,8 +346,6 @@ function choosePersona(pers, nickname){
         chosenPersona = pers
     }
 
-    console.log('here')
-
     orc = document.getElementById(pers + 'IMG');
     orc.classList.add('chosen')
     orc.classList.remove("choosable");
@@ -338,23 +353,8 @@ function choosePersona(pers, nickname){
     nickname === undefined ? orc.innerHTML = getCookie('login') : orc.innerHTML = nickname
 }
 
-
-function show_game(e) {
-    if (check_errors(e)) {
-        let resp = JSON.parse(e.target.response);
-        let logins = resp.RESULTS[0].login;
-        let cells = resp.RESULTS[0].cell_id;
-        if(logins && cells){
-            for (let i = 1; i <= 4; i++){
-                document.querySelector('.cell-' + i).innerHTML = ' ';
-            }
-            for (let i = 0; i < cells.length; i++){
-                if (cells[i] >= 1 && cells[i] <= 4){
-                    document.querySelector('.cell-' + cells[i]).innerHTML += (logins[i] + "<br>");
-                }
-            }
-        }
-    }
+function startGame(){
+    window.location.href = 'game.html'
 }
 
 function show_error(s) {
