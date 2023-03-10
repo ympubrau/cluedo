@@ -201,7 +201,6 @@ function inGameNow(e){
         fd.append('db', '283909');
         fd.append('p1', getCookie('token'));
         fd.append('p2', game_id);
-        fd.append('p3', pass);
         fd.append('format', 'columns_compact');
 
         const interval = setInterval(function() {
@@ -310,8 +309,7 @@ function choosePersonaSql(e){
     fd.append('db', '283909');
     fd.append('p1', getCookie('token'));
     fd.append('p2', game_id);
-    fd.append('p3', pass);
-    fd.append('p4', pers + "");
+    fd.append('p3', pers + "");
     fd.append('format', 'columns_compact');
 
     fetch(url, {
@@ -360,7 +358,6 @@ function startGame(){
     fd.append('db', '283909');
     fd.append('p1', getCookie('token'));
     fd.append('p2', game_id);
-    fd.append('p3', pass);
     fd.append('format', 'columns_compact');
 
     fetch(url, {

@@ -3,6 +3,9 @@ let positions = [];
 let game_won = false;
 let myCell = document.getElementsByClassName('cell-94')[0];
 let allCells = [];
+let dices_thrown = false;
+let move_done = false;
+const cell_names = ['Бильярдная','Библиотека','Кабинет','Кухня','Зимний сад','Гостинная','Бальный зал','Холл','Столовая']
 for (let i = 1; i <= 94; i++){
     allCells.push(document.getElementsByClassName('cell-' + i)[0])
     allCells[i-1].addEventListener("click", function(){
@@ -41,6 +44,7 @@ window.onload = function (){
 }
 
 function show_game(e) {
+    document.querySelector(".status").innerText = ' ';
     console.log(e)
     if (checkSqlErrors(e)) {
         let logins = e.RESULTS[1].login;
@@ -56,6 +60,8 @@ function show_game(e) {
             }
 
         }
+
+
         positions = [...cells];
 
         let notes_id = e.RESULTS[0].card_type_id;
@@ -68,12 +74,45 @@ function show_game(e) {
 
         document.getElementsByClassName('current')[0].innerText = e.RESULTS[2].login;
         document.getElementsByClassName('time')[0].innerText = e.RESULTS[2].end[0].split(' ')[1];
+
+        if (e.RESULTS[2].login[0] === getCookie('login')){
+            if (!dices_thrown){
+                document.getElementById('diceThrow').hidden = false;
+            }
+            document.getElementById('makeAssumption').hidden = false;
+            document.getElementById('makeAccusation').hidden = false;
+            document.getElementById('endTurn').hidden = false;
+        }
+
+        if (e.RESULTS[5].assuming_player != null && e.RESULTS[5].assuming_player !== undefined){
+            document.getElementById('assumption').hidden = false;
+            if (e.RESULTS[5].assuming_player[0] === getCookie('login')){
+
+                document.getElementById('assumption').innerText =
+                    'Вы предположили, что ' +
+                    e.RESULTS[5].supposed_player[0] + ' убил жертву в ' +
+                    e.RESULTS[5].room[0] + ' c помощью ' +
+                    e.RESULTS[5].weapon[0] + '.'
+            }
+            else if(e.RESULTS[5].supposed_player[0] === getCookie('login')){
+                document.getElementById('assumption').innerText =
+                    e.RESULTS[5].assuming_player[0] + 'предположил, что Вы убили жертву в ' +
+                    e.RESULTS[5].room[0] + ' c помощью ' +
+                    e.RESULTS[5].weapon[0] + '.'
+            }
+            else {
+                document.getElementById('assumption').innerText =
+                    e.RESULTS[5].assuming_player[0] + 'предположил, что ' +
+                    e.RESULTS[5].supposed_player[0] + ' убил жертву в ' +
+                    e.RESULTS[5].room[0] + ' c помощью ' +
+                    e.RESULTS[5].weapon[0] + '.'
+            }
+        }
     }
 }
 
 function throwDices(){
-    document.getElementById('diceThrow').hidden = true;
-    document.getElementById('divDices').hidden = false;
+    dices_thrown = true;
     const url = "https://sql.lavro.ru/call.php?";
 
     let fd = new FormData();
@@ -94,18 +133,68 @@ function throwDices(){
             return show_error('ошибка сети)');
         }
     }).then((responseJSON) => {
-        document.getElementById('divDices').innerText += responseJSON.RESULTS[0].dices[0];
-        console.log(responseJSON)
-        showAvailableCells(responseJSON.RESULTS[1].avaliable_cells);
+        if (responseJSON.RESULTS[0].e){
+            console.log('Not your turn');
+            show_error('Сейчас не ваш ход');
+        }
+        else {
+            console.log(responseJSON)
+            document.getElementById('diceThrow').hidden = true;
+            document.getElementById('divDices').hidden = false;
+            document.getElementsByClassName('dices')[0].innerText = responseJSON.RESULTS[0].dices[0]
+            showAvailableCells(responseJSON.RESULTS[1].avaliable_cells);
+
+        }
     });
 }
 
-function showAvailableCells(e){
+function endTurn(){
+    dices_thrown = false;
+    move_done = false;
 
+    document.getElementById('diceThrow').hidden = true;
+    document.getElementById('divDices').hidden = true;
+    document.getElementById('makeAssumption').hidden = true;
+    document.getElementById('makeAccusation').hidden = true;
+    document.getElementById('endTurn').hidden = true;
+
+    const url = "https://sql.lavro.ru/call.php?";
+    let fd = new FormData();
+    fd.append('pname', 'end_turn');
+    fd.append('db', '283909');
+    fd.append('p1', getCookie('token'));
+    fd.append('p2', getCookie('gameID'));
+    fd.append('format', 'columns_compact');
+
+    fetch(url, {
+        method: "POST",
+        body: fd
+    }).then((response) => {
+        if (response.ok){
+            return response.json()
+        }
+        else {
+            return show_error('ошибка сети)');
+        }
+    }).then((responseJSON) => {
+        if (responseJSON.RESULTS[0].e){
+            console.log('Not your turn');
+            show_error('Сейчас не ваш ход');
+        }
+        else {
+            console.log(responseJSON);
+            showAvailableCells(responseJSON.RESULTS[1].avaliable_cells);
+        }
+    });
+
+}
+
+function showAvailableCells(e){
     for (let q of allCells)
         if (q.classList.contains('canChoose'))
             q.classList.remove('canChoose');
 
+    if (move_done || e === null || e === undefined) return;
 
     for (let q of e){
         let o = document.getElementsByClassName('cell-' + q)[0];
@@ -114,9 +203,10 @@ function showAvailableCells(e){
 }
 
 function moveHere(e) {
-    if (!document.getElementsByClassName('cell-' + e)[0].classList.contains('canChoose')){
+    if (!document.getElementsByClassName('cell-' + e)[0].classList.contains('canChoose') || move_done){
         return
     }
+    console.log('qwe')
 
     const url = "https://sql.lavro.ru/call.php?";
 
@@ -140,12 +230,24 @@ function moveHere(e) {
         }
     }).then((responseJSON) => {
         console.log(responseJSON)
-        showAvailableCells(responseJSON.RESULTS[1].avaliable_cells);
-        console.log(myCell)
-        if (myCell.classList.contains('currentCell')) myCell.classList.remove('currentCell');
-        myCell.innerHTML = e;
-        myCell = document.getElementsByClassName('cell-' + e)[0];
-        myCell.classList.add('currentCell');
+        if (responseJSON.RESULTS[0].e){
+            console.log('Not your turn');
+            show_error('Сейчас не ваш ход');
+        }
+        else {
+            if (responseJSON.RESULTS[2].dice_number[0] === 7){
+                move_done = true;
+                showAvailableCells();
+                document.getElementById('divDices').hidden = true;
+            }
+            document.getElementsByClassName('dices')[0].innerText = responseJSON.RESULTS[2].dice_number[0];
+            showAvailableCells(responseJSON.RESULTS[1].avaliable_cells);
+            if (myCell.classList.contains('currentCell')) myCell.classList.remove('currentCell');
+            myCell.innerText = e;
+            console.log(myCell.classList)
+            myCell = document.getElementsByClassName('cell-' + e)[0];
+            myCell.classList.add('currentCell');
+        }
     });
 }
 
