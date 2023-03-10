@@ -2,15 +2,10 @@ body {
     min-width: 1000px;
 }
 
-.field {
-    width: 200px;
-    height: 200px;
-    display: grid;
-    grid-template-columns: 50% 50%;
-    grid-template-rows: 50% 50%;
-}
 
 .cell {
+    width: 2em;
+    height: 2em;
     border: 1px solid black;
 }
 
@@ -69,7 +64,94 @@ body {
     right: 0;
 }
 
+.left{
+    display: block;
+    position: absolute;
+    width: 78%;
+    left: 10px;
+}
+
+.right {
+    background-color: beige;
+    display: block;
+    position: absolute;
+    width: 20%;
+    right: 10px;
+}
+
 .chosen{
     border: 5px solid red !important;
     color: green;
+}
+
+button:hover:enabled{
+    cursor: pointer;
+    opacity: 80%;
+}
+
+.tg {
+    min-height: 50em;
+    border-collapse:collapse;
+    border-spacing:0;
+}
+
+.tg td{
+    height: 3em;
+    width: 5em;
+    border-color:black;
+    border-style:solid;
+    border-width:1px;
+    overflow:hidden;
+    padding:10px 5px;
+    word-break:normal;
+}
+
+.tg th{
+    border-color:black;
+    border-style:solid;
+    border-width:1px;
+    overflow:hidden;
+    padding:10px 5px;
+}
+
+.tg {border-color:#000000;color:#000000;text-align:center;vertical-align:middle}
+.tg .tg-gvcd{background-color:#ffffff}
+.tg .tg-cz84{background-color:#fe0000}
+
+.notes{
+    margin-left: 10px;
+    border-collapse:collapse;
+}
+
+.notes td{
+    border-color:black;
+    border-style:solid;
+    border-width:1px;
+    overflow:hidden;
+}
+
+.status{
+    padding: 0 5px;
+}
+
+.minus{
+    background-color: #fe0000;
+}
+
+.plus{
+    background-color: green;
+}
+
+.canChoose{
+    background-color: lightgreen !important;
+    border: 3px solid green !important;
+}
+
+.canChoose:hover{
+    background-color: green !important;
+    border: 3px solid darkgreen !important;
+}
+
+.currentCell{
+    background-color: blanchedalmond !important;
 }

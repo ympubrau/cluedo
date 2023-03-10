@@ -354,7 +354,31 @@ function choosePersona(pers, nickname){
 }
 
 function startGame(){
-    window.location.href = 'game.html'
+    const url = "https://sql.lavro.ru/call.php?";
+    let fd = new FormData();
+    fd.append('pname', 'start_game');
+    fd.append('db', '283909');
+    fd.append('p1', getCookie('token'));
+    fd.append('p2', game_id);
+    fd.append('p3', pass);
+    fd.append('format', 'columns_compact');
+
+    fetch(url, {
+        method: "POST",
+        body: fd
+    }).then((response) => {
+        if (response.ok){
+            return response.json()
+        }
+        else {
+            return show_error('ошибка сети)');
+        }
+    }).then((responseJSON) => {
+        window.location.href = 'game.html';
+        console.log(responseJSON);
+
+    });
+
 }
 
 function show_error(s) {
