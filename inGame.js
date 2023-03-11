@@ -5,6 +5,8 @@ let myCell = document.getElementsByClassName('cell-94')[0];
 let allCells = [];
 let dices_thrown = false;
 let move_done = false;
+let assumption_making = false;
+let assumption_made = false;
 const cell_names = ['Бильярдная','Библиотека','Кабинет','Кухня','Зимний сад','Гостинная','Бальный зал','Холл','Столовая']
 for (let i = 1; i <= 94; i++){
     allCells.push(document.getElementsByClassName('cell-' + i)[0])
@@ -61,7 +63,6 @@ function show_game(e) {
 
         }
 
-
         positions = [...cells];
 
         let notes_id = e.RESULTS[0].card_type_id;
@@ -76,43 +77,53 @@ function show_game(e) {
         document.getElementsByClassName('time')[0].innerText = e.RESULTS[2].end[0].split(' ')[1];
 
         if (e.RESULTS[2].login[0] === getCookie('login')){
-            if (!dices_thrown){
-                document.getElementById('diceThrow').hidden = false;
-            }
-            document.getElementById('makeAssumption').hidden = false;
+            document.getElementById('diceThrow').hidden = false;
+            document.getElementById('openAssumption').hidden = false;
             document.getElementById('makeAccusation').hidden = false;
             document.getElementById('endTurn').hidden = false;
+
+            if (dices_thrown || move_done && e.RESULTS[2].dice_number[0] === 7){
+                document.getElementById('diceThrow').hidden = true;
+                document.getElementById('divDices').hidden = true;
+            }
+            if (assumption_making){
+                document.getElementById('diceThrow').hidden = true;
+                document.getElementById('openAssumption').hidden = true;
+                document.getElementById('makeAccusation').hidden = true;
+                document.getElementById('endTurn').hidden = true;
+            }
         }
 
-        if (e.RESULTS[5].assuming_player != null && e.RESULTS[5].assuming_player !== undefined){
+        if (e.RESULTS[5].assuming_player[0] != null && e.RESULTS[5].assuming_player[0] !== undefined){
+            document.getElementById('openAssumption').hidden = true;
+            document.getElementById('assumption').innerText = '';
             document.getElementById('assumption').hidden = false;
+            document.getElementById('assumption_commentary').hidden = false;
             if (e.RESULTS[5].assuming_player[0] === getCookie('login')){
-
                 document.getElementById('assumption').innerText =
                     'Вы предположили, что ' +
-                    e.RESULTS[5].supposed_player[0] + ' убил жертву в ' +
+                    e.RESULTS[5].supposed_persona[0] + ' убил жертву в ' +
                     e.RESULTS[5].room[0] + ' c помощью ' +
                     e.RESULTS[5].weapon[0] + '.'
             }
-            else if(e.RESULTS[5].supposed_player[0] === getCookie('login')){
+            else if(e.RESULTS[5].supposed_persona[0] === getCookie('login')){
                 document.getElementById('assumption').innerText =
-                    e.RESULTS[5].assuming_player[0] + 'предположил, что Вы убили жертву в ' +
+                    e.RESULTS[5].assuming_player[0] + ' предположил, что Вы убили жертву в ' +
                     e.RESULTS[5].room[0] + ' c помощью ' +
                     e.RESULTS[5].weapon[0] + '.'
             }
             else {
                 document.getElementById('assumption').innerText =
-                    e.RESULTS[5].assuming_player[0] + 'предположил, что ' +
-                    e.RESULTS[5].supposed_player[0] + ' убил жертву в ' +
+                    e.RESULTS[5].assuming_player[0] + ' предположил, что ' +
+                    e.RESULTS[5].supposed_persona[0] + ' убил жертву в ' +
                     e.RESULTS[5].room[0] + ' c помощью ' +
                     e.RESULTS[5].weapon[0] + '.'
             }
-        }
+        } else document.getElementById('assumption').innerText = '';
     }
 }
 
 function throwDices(){
-    dices_thrown = true;
     const url = "https://sql.lavro.ru/call.php?";
 
     let fd = new FormData();
@@ -138,6 +149,7 @@ function throwDices(){
             show_error('Сейчас не ваш ход');
         }
         else {
+            dices_thrown = true;
             console.log(responseJSON)
             document.getElementById('diceThrow').hidden = true;
             document.getElementById('divDices').hidden = false;
@@ -149,12 +161,17 @@ function throwDices(){
 }
 
 function endTurn(){
+    move_done = true;
+    showAvailableCells();
+    document.getElementById('divDices').hidden = true;
+
     dices_thrown = false;
     move_done = false;
 
     document.getElementById('diceThrow').hidden = true;
     document.getElementById('divDices').hidden = true;
-    document.getElementById('makeAssumption').hidden = true;
+    document.getElementById('openAssumption').hidden = true;
+    document.getElementById('assumption_commentary').hidden = true;
     document.getElementById('makeAccusation').hidden = true;
     document.getElementById('endTurn').hidden = true;
 
@@ -182,8 +199,8 @@ function endTurn(){
             show_error('Сейчас не ваш ход');
         }
         else {
-            console.log(responseJSON);
-            showAvailableCells(responseJSON.RESULTS[1].avaliable_cells);
+            document.getElementById('assumption').hidden = true;
+            showAvailableCells([]);
         }
     });
 
@@ -206,7 +223,6 @@ function moveHere(e) {
     if (!document.getElementsByClassName('cell-' + e)[0].classList.contains('canChoose') || move_done){
         return
     }
-    console.log('qwe')
 
     const url = "https://sql.lavro.ru/call.php?";
 
@@ -247,6 +263,63 @@ function moveHere(e) {
             console.log(myCell.classList)
             myCell = document.getElementsByClassName('cell-' + e)[0];
             myCell.classList.add('currentCell');
+        }
+    });
+}
+
+function openAssumption(){
+    showAvailableCells();
+    document.getElementById('divDices').hidden = true;
+    assumption_making = true;
+    document.getElementById('makeAssumption').hidden = false;
+    document.getElementById('openAssumption').hidden = true;
+    document.getElementById('divDices').hidden = true;
+    document.getElementById('diceThrow').hidden = true;
+    document.getElementById('makeAccusation').hidden = true;
+    document.getElementById('endTurn').hidden = true;
+}
+
+function closeAssumption(){
+    assumption_making = false;
+    document.getElementById('makeAssumption').hidden = true;
+}
+
+function makeAssumption() {
+    const url = "https://sql.lavro.ru/call.php?";
+    let fd = new FormData();
+    fd.append('pname', 'make_assumption');
+    fd.append('db', '283909');
+    fd.append('p1', getCookie('token'));
+    fd.append('p2', getCookie('gameID'));
+    fd.append('p3', document.getElementById('chPersona').value);
+    fd.append('p4', document.getElementById('chWeapon').value);
+    fd.append('format', 'columns_compact');
+
+    fetch(url, {
+        method: "POST",
+        body: fd
+    }).then((response) => {
+        if (response.ok){
+            return response.json()
+        }
+        else {
+            return show_error('ошибка сети)');
+        }
+    }).then((responseJSON) => {
+        console.log(responseJSON)
+        if (responseJSON.RESULTS[0].e){
+            console.log('responseJSON');
+            show_error('Сейчас не ваш ход');
+        }
+        else if (responseJSON.RESULTS[0].res){
+            show_error(responseJSON.RESULTS[0].res[0])
+            assumption_made = true;
+            closeAssumption();
+        }
+        else {
+            alert(`Вы получили новую карту: ${responseJSON.RESULTS[1].description[0]}`);
+            assumption_made = true;
+            closeAssumption();
         }
     });
 }
