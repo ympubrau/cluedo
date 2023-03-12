@@ -1,7 +1,6 @@
 let token;
 let gameStarted = false;
 let inMainMenu = true;
-let game_id;
 let pass = null;
 let chosenPersona = 0;
 const personas = ['',"orchid","peacock",'scarlet','mustard','plum','green']
@@ -132,12 +131,14 @@ function newGame() {
     fd.append('pname', 'new_game');
     fd.append('db', '283909');
     fd.append('p1', getCookie('token'));
-    fd.append('p2', document.getElementById('gamePassInput').value);
+    fd.append('p2', document.getElementById('gamePassInput').checked ? '1' : '0');
     fd.append('format', 'columns_compact');
 
     document.getElementById('game_token').disabled = true;
     document.getElementById('game_pass').disabled = true;
     document.getElementById('gamePassInput').disabled = true;
+    document.getElementById('newGameButt').disabled = true;
+    document.getElementById('connectGameButt').disabled = true;
 
     fetch(url, {
         method: "POST",
@@ -180,6 +181,17 @@ function connectGame(){
             return show_error('ошибка сети)');
         }
     }).then((responseJSON) => {
+        if (checkSqlErrors(responseJSON)){
+            if (!responseJSON.RESULTS[0].e){
+                console.log(responseJSON)
+                let game_id = responseJSON.RESULTS[0].Game_id[0];
+                if (responseJSON.RESULTS[1].Game_password !== undefined){
+                    pass = responseJSON.RESULTS[1].Game_password[0]
+                }
+                setCookie('gameID', game_id)
+                setCookie('pass', pass)
+            }
+        }
         inGameNow(responseJSON)
     });
 }
@@ -188,19 +200,13 @@ function inGameNow(e){
     console.log(e)
     if (checkSqlErrors(e)){
         document.getElementById("gameInfo").removeAttribute('hidden')
-        game_id = e.RESULTS[0].Game_id[0];
 
-        if (e.RESULTS[1].Game_password !== undefined){
-            pass = e.RESULTS[1].Game_password[0]
-        }
-        setCookie('gameID', game_id)
-        setCookie('pass', pass)
         const url = "https://sql.lavro.ru/call.php?";
         let fd = new FormData();
         fd.append('pname', 'room_state');
         fd.append('db', '283909');
         fd.append('p1', getCookie('token'));
-        fd.append('p2', game_id);
+        fd.append('p2', getCookie('gameID'));
         fd.append('format', 'columns_compact');
 
         const interval = setInterval(function() {
@@ -240,7 +246,7 @@ function updateRoomInfo(e){
     let gId = document.getElementById('gameId')
 
     gId.innerHTML = ' '
-    gId.innerHTML = '<div>' + game_id + '</div>'
+    gId.innerHTML = '<div>' + getCookie('gameID') + '</div>'
 
     playersDiv.innerHTML = ' '
     for (let q of e.RESULTS[2].login){
@@ -314,7 +320,7 @@ function choosePersonaSql(e){
     fd.append('pname', 'choose_persona');
     fd.append('db', '283909');
     fd.append('p1', getCookie('token'));
-    fd.append('p2', game_id);
+    fd.append('p2', getCookie('gameID'));
     fd.append('p3', pers + "");
     fd.append('format', 'columns_compact');
 
@@ -363,7 +369,7 @@ function startGame(){
     fd.append('pname', 'start_game');
     fd.append('db', '283909');
     fd.append('p1', getCookie('token'));
-    fd.append('p2', game_id);
+    fd.append('p2', getCookie('gameID'));
     fd.append('format', 'columns_compact');
 
     fetch(url, {
