@@ -130,7 +130,7 @@ function newGame() {
     fd.append('pname', 'new_game');
     fd.append('db', '283909');
     fd.append('p1', getCookie('token'));
-    fd.append('p2', document.getElementById('gamePassInput').checked ? '1' : '0');
+    fd.append('p2', document.getElementById('gamePassInput').checked ? '1' : null);
     fd.append('format', 'columns_compact');
 
     document.getElementById('game_token').disabled = true;
