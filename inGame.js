@@ -47,21 +47,22 @@ window.onload = function (){
 
 function show_game(e) {
     document.querySelector(".status").innerText = ' ';
-    console.log(e)
     if (checkSqlErrors(e)) {
+        console.log(e);
         let logins = e.RESULTS[1].login;
         let cells = e.RESULTS[1].cell_id;
-        if (logins && cells) {
-            if (positions[0]) {
-                for (let i = 0; i < positions.length; i++) {
-                    document.querySelector('.cell-' + positions[i]).innerHTML = positions[i];
-                }
-            }
-            for (let i = 0; i < cells.length; i++) {
-                document.querySelector('.cell-' + cells[i]).innerHTML += (logins[i] + "<br>");
-            }
 
+        for (let i = 0; i < cell_names.length; i++) {
+                document.querySelector('.cell-' + (i + 1)).innerHTML = cell_names[i] + " (" + (i + 1) + ")";
         }
+
+        for (let i = 0; i < cells.length; i++) {
+            if (!document.querySelector('.cell-' + cells[i]).innerText.includes(logins[i])){
+                if (logins[i] === getCookie('login')) myCell = document.querySelector('.cell-' + cells[i]);
+                document.querySelector('.cell-' + cells[i]).innerHTML += "<br><b style='color: #333cff'> " + (logins[i] + "</b>");
+            }
+        }
+
 
         positions = [...cells];
 
@@ -76,16 +77,28 @@ function show_game(e) {
         document.getElementsByClassName('current')[0].innerText = e.RESULTS[2].login;
         document.getElementsByClassName('time')[0].innerText = e.RESULTS[2].end[0].split(' ')[1];
 
+        if (e.RESULTS[2].dice_number[0] < 7 && e.RESULTS[2].dice_number[0] > 0){
+            showAvailableCells(e.RESULTS[3].avaliable_cells);
+            document.getElementsByClassName('dices')[0].innerText = e.RESULTS[2].dice_number[0];
+        }
+
         if (e.RESULTS[2].login[0] === getCookie('login')){
             document.getElementById('diceThrow').hidden = false;
             document.getElementById('openAssumption').hidden = false;
             document.getElementById('makeAccusation').hidden = false;
             document.getElementById('endTurn').hidden = false;
 
-            if (dices_thrown || move_done && e.RESULTS[2].dice_number[0] === 7){
+            if (move_done || e.RESULTS[2].dice_number[0] === 7){
                 document.getElementById('diceThrow').hidden = true;
                 document.getElementById('divDices').hidden = true;
             }
+
+            if (dices_thrown || (e.RESULTS[2].dice_number[0] < 7 && e.RESULTS[2].dice_number[0] > 0)) {
+                document.getElementById('diceThrow').hidden = true;
+                document.getElementById('divDices').hidden = e.RESULTS[2].dice_number[0] === 0;
+            }
+
+
             if (assumption_making){
                 document.getElementById('diceThrow').hidden = true;
                 document.getElementById('openAssumption').hidden = true;
@@ -145,8 +158,9 @@ function throwDices(){
         }
     }).then((responseJSON) => {
         if (responseJSON.RESULTS[0].e){
-            console.log('Not your turn');
-            show_error('Сейчас не ваш ход');
+            console.log(responseJSON.RESULTS[0].e[0]);
+            show_error(responseJSON.RESULTS[0].e[0]);
+            showAvailableCells([])
         }
         else {
             dices_thrown = true;
@@ -155,7 +169,6 @@ function throwDices(){
             document.getElementById('divDices').hidden = false;
             document.getElementsByClassName('dices')[0].innerText = responseJSON.RESULTS[0].dices[0]
             showAvailableCells(responseJSON.RESULTS[1].avaliable_cells);
-
         }
     });
 }
@@ -194,6 +207,7 @@ function endTurn(){
             return show_error('ошибка сети)');
         }
     }).then((responseJSON) => {
+        console.log(responseJSON)
         if (responseJSON.RESULTS[0].e){
             console.log('Not your turn');
             show_error('Сейчас не ваш ход');
@@ -259,8 +273,7 @@ function moveHere(e) {
             document.getElementsByClassName('dices')[0].innerText = responseJSON.RESULTS[2].dice_number[0];
             showAvailableCells(responseJSON.RESULTS[1].avaliable_cells);
             if (myCell.classList.contains('currentCell')) myCell.classList.remove('currentCell');
-            myCell.innerText = e;
-            console.log(myCell.classList)
+            myCell.innerHTML = e;
             myCell = document.getElementsByClassName('cell-' + e)[0];
             myCell.classList.add('currentCell');
         }
@@ -308,8 +321,7 @@ function makeAssumption() {
     }).then((responseJSON) => {
         console.log(responseJSON)
         if (responseJSON.RESULTS[0].e){
-            console.log('responseJSON');
-            show_error('Сейчас не ваш ход');
+            show_error(responseJSON.RESULTS[0].e[0]);
         }
         else if (responseJSON.RESULTS[0].res){
             show_error(responseJSON.RESULTS[0].res[0])

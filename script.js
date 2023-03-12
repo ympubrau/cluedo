@@ -255,9 +255,9 @@ function updateRoomInfo(e){
     if (getCookie('login') === e.RESULTS[1].game_admin[0]){
         if ( e.RESULTS[3].login.length >= 3)
         document.getElementById('gameStart').removeAttribute('hidden')
+        pass === null ? gPass.innerHTML = '<div>У данной комнаты нет пароля</div>' : gPass.innerHTML = '<div>' + pass + '</div>'
     }
 
-    pass === null ? gPass.innerHTML = '<div>У данной комнаты нет пароля</div>' : gPass.innerHTML = '<div>' + pass + '</div>'
 
     clearPersonas();
     let counter = 0;

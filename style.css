@@ -116,7 +116,8 @@ button:hover:enabled{
 
 .tg {border-color:#000000;color:#000000;text-align:center;vertical-align:middle}
 .tg .tg-gvcd{background-color:#ffffff}
-.tg .tg-cz84{background-color:#fe0000}
+.tg .tg-cz84{background-color: #d5afff
+}
 
 .notes{
     margin-left: 10px;
@@ -135,11 +136,11 @@ button:hover:enabled{
 }
 
 .minus{
-    background-color: #fe0000;
+    background-color: #fa5656;
 }
 
 .plus{
-    background-color: green;
+    background-color: lightgreen;
 }
 
 .canChoose{

@@ -13,8 +13,8 @@
     <div class="form">
         <h3>Здесь вы можете создать свою игровую комнату:</h3>
         <div>
-            <label style="display: inline-block; width: 100%;">Пароль для игры (если вы хотите сгенерировать пароль для комнаты введите - 1)</label>
-            <input id="gamePassInput" type="text" value="">
+            <label style=" width: 100%;">Конмата с паролем (он будет сгенерирован автоматически)</label>
+            <input id="gamePassInput" type="checkbox" value="1" style="position: relative; top:2px;">
         </div>
         <button onclick="newGame()">Создать</button>
     </div>
@@ -51,7 +51,7 @@
         <div id="gameAdmin"></div>
 
         <h4>Пароль комнаты:</h4>
-        <div id="gamePass"></div>
+        <div id="gamePass" style="font-weight: bold;"></div>
 
 
         <h4>Персонажи:</h4>
