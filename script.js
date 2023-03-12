@@ -130,7 +130,7 @@ function newGame() {
     fd.append('pname', 'new_game');
     fd.append('db', '283909');
     fd.append('p1', getCookie('token'));
-    fd.append('p2', document.getElementById('gamePassInput').checked ? '1' : null);
+    fd.append('p2', document.getElementById('gamePassInput').checked ? '1' : 'null');
     fd.append('format', 'columns_compact');
 
     document.getElementById('game_token').disabled = true;
@@ -151,8 +151,8 @@ function newGame() {
         }
     }).then((responseJSON) => {
         setCookie('gameID', responseJSON.RESULTS[0].Game_id[0])
-        if (responseJSON.RESULTS[1].Game_password !== undefined){
-            setCookie('gameID',responseJSON.RESULTS[1].Game_password[0])
+        if (responseJSON.RESULTS[1].Game_password !== undefined && responseJSON.RESULTS[1].Game_password !== null){
+            setCookie('pass',responseJSON.RESULTS[1].Game_password[0]);
         }
         inGameNow(responseJSON)
     });
@@ -188,7 +188,7 @@ function connectGame(){
             if (!responseJSON.RESULTS[0].e){
                 console.log(responseJSON)
                 setCookie('gameID', responseJSON.RESULTS[0].Game_id[0]);
-                if (responseJSON.RESULTS[1].Game_password !== undefined){
+                if (responseJSON.RESULTS[1].Game_password !== undefined && responseJSON.RESULTS[1].Game_password !== null){
                     setCookie('pass',responseJSON.RESULTS[1].Game_password[0]);
                 }
             }
@@ -262,7 +262,7 @@ function updateRoomInfo(e){
     if (getCookie('login') === e.RESULTS[1].game_admin[0]){
         if ( e.RESULTS[3].login.length >= 3)
         document.getElementById('gameStart').removeAttribute('hidden')
-        getCookie('pass') === null ? gPass.innerHTML = '<div>У данной комнаты нет пароля</div>' : gPass.innerHTML = '<div>' + getCookie('pass') + '</div>'
+        getCookie('pass') === 'null' ? gPass.innerHTML = '<div>У данной комнаты нет пароля</div>' : gPass.innerHTML = '<div>' + getCookie('pass') + '</div>'
     }
 
 

@@ -7,6 +7,8 @@ let dices_thrown = false;
 let move_done = false;
 let assumption_making = false;
 let assumption_made = false;
+let previous_cells = [];
+let accusation_making = false;
 const cell_names = ['Бильярдная','Библиотека','Кабинет','Кухня','Зимний сад','Гостинная','Бальный зал','Холл','Столовая']
 for (let i = 1; i <= 94; i++){
     allCells.push(document.getElementsByClassName('cell-' + i)[0])
@@ -48,17 +50,43 @@ window.onload = function (){
 function show_game(e) {
     document.querySelector(".status").innerText = ' ';
     if (checkSqlErrors(e)) {
+        if (e.RESULTS[0].e){
+            if (e.RESULTS[0].e[0] === 'Game_ended'){
+                alert('Игра закончилась');
+                window.location.href = 'index.html';
+                return;
+            }
+        }
         console.log(e);
         let logins = e.RESULTS[1].login;
         let cells = e.RESULTS[1].cell_id;
+
+        if (previous_cells === [] || previous_cells.length <= cells){
+            previous_cells = cells;
+        }
+        else {
+            for (let i = 0; i < previous_cells.length; i++) {
+                document.querySelector('.cell-' + previous_cells[i]).innerHTML = '';
+            }
+        }
+
+
 
         for (let i = 0; i < cell_names.length; i++) {
                 document.querySelector('.cell-' + (i + 1)).innerHTML = cell_names[i] + " (" + (i + 1) + ")";
         }
 
+        let islogin = true;
         for (let i = 0; i < cells.length; i++) {
-            if (!document.querySelector('.cell-' + cells[i]).innerText.includes(logins[i])){
-                if (logins[i] === getCookie('login')) myCell = document.querySelector('.cell-' + cells[i]);
+            let l = document.querySelector('.cell-' + cells[i]).innerText.split('\n');
+            for (let q of l)
+                if (q === logins[i])
+                    islogin = false;
+
+            if (islogin){
+                if (logins[i] === getCookie('login'))
+                    myCell = document.querySelector('.cell-' + cells[i]);
+
                 document.querySelector('.cell-' + cells[i]).innerHTML += "<br><b style='color: #333cff'> " + (logins[i] + "</b>");
             }
         }
@@ -85,7 +113,7 @@ function show_game(e) {
         if (e.RESULTS[2].login[0] === getCookie('login')){
             document.getElementById('diceThrow').hidden = false;
             document.getElementById('openAssumption').hidden = false;
-            document.getElementById('makeAccusation').hidden = false;
+            document.getElementById('openAccusation').hidden = false;
             document.getElementById('endTurn').hidden = false;
 
             if (move_done || e.RESULTS[2].dice_number[0] === 7){
@@ -102,7 +130,14 @@ function show_game(e) {
             if (assumption_making){
                 document.getElementById('diceThrow').hidden = true;
                 document.getElementById('openAssumption').hidden = true;
-                document.getElementById('makeAccusation').hidden = true;
+                document.getElementById('openAccusation').hidden = true;
+                document.getElementById('endTurn').hidden = true;
+            }
+
+            if (accusation_making){
+                document.getElementById('diceThrow').hidden = true;
+                document.getElementById('openAssumption').hidden = true;
+                document.getElementById('openAccusation').hidden = true;
                 document.getElementById('endTurn').hidden = true;
             }
         }
@@ -185,7 +220,7 @@ function endTurn(){
     document.getElementById('divDices').hidden = true;
     document.getElementById('openAssumption').hidden = true;
     document.getElementById('assumption_commentary').hidden = true;
-    document.getElementById('makeAccusation').hidden = true;
+    document.getElementById('openAccusation').hidden = true;
     document.getElementById('endTurn').hidden = true;
 
     const url = "https://sql.lavro.ru/call.php?";
@@ -280,21 +315,57 @@ function moveHere(e) {
     });
 }
 
-function openAssumption(){
+function openAssumption() {
     showAvailableCells();
-    document.getElementById('divDices').hidden = true;
     assumption_making = true;
     document.getElementById('makeAssumption').hidden = false;
+    document.getElementById('assumptionText').hidden = false;
+    document.getElementById('makeAssumptionButt').hidden = false;
+    document.getElementById('cancelAssumption').hidden = false;
+
+    document.getElementById('openAccusation').hidden = true;
+    document.getElementById('accusationText').hidden = true;
+    document.getElementById('makeAccusationButt').hidden = true;
+    document.getElementById('cancelAccusation').hidden = true;
+    document.getElementById('roomChoosing').hidden = true;
+    document.getElementById('divDices').hidden = true;
     document.getElementById('openAssumption').hidden = true;
     document.getElementById('divDices').hidden = true;
     document.getElementById('diceThrow').hidden = true;
-    document.getElementById('makeAccusation').hidden = true;
     document.getElementById('endTurn').hidden = true;
 }
 
 function closeAssumption(){
     assumption_making = false;
     document.getElementById('makeAssumption').hidden = true;
+    document.getElementById('assumptionText').hidden = true;
+}
+
+function openAccusation() {
+    showAvailableCells();
+    accusation_making = true;
+    document.getElementById('makeAssumption').hidden = false;
+    document.getElementById('accusationText').hidden = false;
+    document.getElementById('makeAccusationButt').hidden = false;
+    document.getElementById('cancelAccusation').hidden = false;
+    document.getElementById('roomChoosing').hidden = false;
+
+    document.getElementById('assumptionText').hidden = true;
+    document.getElementById('makeAssumptionButt').hidden = true;
+    document.getElementById('cancelAssumption').hidden = true;
+    document.getElementById('divDices').hidden = true;
+    document.getElementById('openAssumption').hidden = true;
+    document.getElementById('divDices').hidden = true;
+    document.getElementById('diceThrow').hidden = true;
+    document.getElementById('openAccusation').hidden = true;
+    document.getElementById('endTurn').hidden = true;
+}
+
+
+function closeAccusation(){
+    accusation_making = false;
+    document.getElementById('makeAssumption').hidden = true;
+    document.getElementById('assumptionText').hidden = true;
 }
 
 function makeAssumption() {
@@ -323,9 +394,48 @@ function makeAssumption() {
         if (responseJSON.RESULTS[0].e){
             show_error(responseJSON.RESULTS[0].e[0]);
         }
+        else {
+            if (responseJSON.RESULTS[0].res === 'YOU WON'){
+                alert('Вы победили');
+                window.location.href = 'index.html';
+            }
+            else {
+                alert('Вы проиграли. Однако вы можете понаблюдать за игрой :)')
+            }
+            closeAccusation();
+        }
+    });
+}
+
+function makeAccusation() {
+    const url = "https://sql.lavro.ru/call.php?";
+    let fd = new FormData();
+    fd.append('pname', 'make_accusation');
+    fd.append('db', '283909');
+    fd.append('p1', getCookie('token'));
+    fd.append('p2', getCookie('gameID'));
+    fd.append('p3', document.getElementById('chPersona').value);
+    fd.append('p4', document.getElementById('chWeapon').value);
+    fd.append('p5', document.getElementById('chRoom').value);
+    fd.append('format', 'columns_compact');
+
+    fetch(url, {
+        method: "POST",
+        body: fd
+    }).then((response) => {
+        if (response.ok){
+            return response.json()
+        }
+        else {
+            return show_error('ошибка сети)');
+        }
+    }).then((responseJSON) => {
+        console.log(responseJSON)
+        if (responseJSON.RESULTS[0].e){
+            show_error(responseJSON.RESULTS[0].e[0]);
+        }
         else if (responseJSON.RESULTS[0].res){
             show_error(responseJSON.RESULTS[0].res[0])
-            assumption_made = true;
             closeAssumption();
         }
         else {
@@ -341,6 +451,7 @@ function show_error(s) {
 }
 
 function checkSqlErrors(e) {
+    console.log(e)
     if(e.RESULTS[0].error){
         show_error(e.RESULTS[0].error);
     }

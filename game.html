@@ -247,8 +247,14 @@
         <button hidden id="openAssumption" onclick="openAssumption()" style="margin-left:10px; background: green; color: white">Сделать предположение</button>
         <div hidden id="makeAssumption" >
             <br>
-            <span>Выберете подозреваемого персонажа и орудие убийства.</span>
-            <span>Комната в предположении будет та, на которой вы сейчас находитесь</span>
+            <div id="assumptionText" hidden>
+                <span>Выберете подозреваемого персонажа и орудие убийства.</span>
+                <span>Комната в предположении будет та, на которой вы сейчас находитесь.</span>
+            </div>
+            <div id="accusationText" hidden>
+                <span>Выберете убийцу, орудие убийства и комнату убийства.</span>
+                <span>Если вы правильно назовете все три параметра - вы победите, если нет - сможете только наблюдать за игрой.</span>
+            </div>
             <div>
                 <p>Выберите подозреваемого персонажа:</p>
                 <select id="chPersona">
@@ -273,11 +279,29 @@
                 </select>
             </div>
 
-            <button id='gameStart' onclick="makeAssumption()" style="background: green; color: white">Сделать предположение</button>
-            <button onclick="closeAssumption()" style="background: red; color: white">Отмена</button>
+            <div id="roomChoosing" hidden>
+                <p>Выберите комнату убийства</p>
+                <select id="chRoom">
+                    <option value="13">Бильярдная</option>
+                    <option selected value="14">Библиотека</option>
+                    <option value="15">Зимний сад</option>
+                    <option value="16">Холл</option>
+                    <option value="17">Кабинет</option>
+                    <option value="18">Кухня</option>
+                    <option value="19">Гостинная</option>
+                    <option value="20">Столовая</option>
+                    <option value="21">Бальный зал</option>
+                </select>
+            </div>
+
+            <button hidden id='makeAssumptionButt' onclick="makeAssumption()" style="background: green; color: white">Сделать предположение</button>
+            <button hidden id='cancelAssumption' onclick="closeAssumption()" style="background: red; color: white">Отмена</button>
+            <button hidden id='makeAccusationButt' onclick="makeAccusation()" style="background: green; color: white">Сделать предположение</button>
+            <button hidden id='cancelAccusation' onclick="closeAccusation()" style="background: red; color: white">Отмена</button>
+
         </div>
 
-        <button hidden id="makeAccusation" onclick="" style="margin-left:10px; background: green; color: white">Сделать разоблачение</button>
+        <button hidden id="openAccusation" onclick="openAccusation()" style="margin-left:10px; background: green; color: white">Сделать разоблачение</button>
         <br>
         <button hidden id="endTurn" onclick="endTurn()" style="margin-left:10px; background: red; color: white">Закончить ход</button>
     </div>
