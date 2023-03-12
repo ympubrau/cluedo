@@ -52,8 +52,7 @@ function show_game(e) {
     if (checkSqlErrors(e)) {
         if (e.RESULTS[0].e){
             if (e.RESULTS[0].e[0] === 'Game_ended'){
-                alert('Игра закончилась');
-                window.location.href = 'index.html';
+                show_error(e.RESULTS[1].description[0] + " " + e.RESULTS[1].description[1] + " " + e.RESULTS[1].description[2] + " ")
                 return;
             }
         }
@@ -61,34 +60,16 @@ function show_game(e) {
         let logins = e.RESULTS[1].login;
         let cells = e.RESULTS[1].cell_id;
 
-        if (previous_cells === [] || previous_cells.length <= cells){
-            previous_cells = cells;
+        for (let i = 1; i < 10; i++){
+            document.querySelector('.cell-' + i).innerHTML = cell_names[i-1] + ' (' + i + ')' + '<br>';
         }
-        else {
-            for (let i = 0; i < previous_cells.length; i++) {
-                document.querySelector('.cell-' + previous_cells[i]).innerHTML = '';
-            }
+        for (let i = 10; i < 95; i++){
+            document.querySelector('.cell-' + i).innerHTML = i + '<br>';
         }
 
 
-
-        for (let i = 0; i < cell_names.length; i++) {
-                document.querySelector('.cell-' + (i + 1)).innerHTML = cell_names[i] + " (" + (i + 1) + ")";
-        }
-
-        let islogin = true;
         for (let i = 0; i < cells.length; i++) {
-            let l = document.querySelector('.cell-' + cells[i]).innerText.split('\n');
-            for (let q of l)
-                if (q === logins[i])
-                    islogin = false;
-
-            if (islogin){
-                if (logins[i] === getCookie('login'))
-                    myCell = document.querySelector('.cell-' + cells[i]);
-
-                document.querySelector('.cell-' + cells[i]).innerHTML += "<br><b style='color: #333cff'> " + (logins[i] + "</b>");
-            }
+            document.querySelector('.cell-' + cells[i]).innerHTML += "<b style='color: #333cff'> " + (logins[i] + "</b>");
         }
 
 
@@ -105,12 +86,13 @@ function show_game(e) {
         document.getElementsByClassName('current')[0].innerText = e.RESULTS[2].login;
         document.getElementsByClassName('time')[0].innerText = e.RESULTS[2].end[0].split(' ')[1];
 
-        if (e.RESULTS[2].dice_number[0] < 7 && e.RESULTS[2].dice_number[0] > 0){
-            showAvailableCells(e.RESULTS[3].avaliable_cells);
-            document.getElementsByClassName('dices')[0].innerText = e.RESULTS[2].dice_number[0];
-        }
-
         if (e.RESULTS[2].login[0] === getCookie('login')){
+
+            if (e.RESULTS[2].dice_number[0] < 7 && e.RESULTS[2].dice_number[0] > 0&& !assumption_making && !accusation_making){
+                showAvailableCells(e.RESULTS[3].avaliable_cells);
+                document.getElementsByClassName('dices')[0].innerText = e.RESULTS[2].dice_number[0];
+            }
+
             document.getElementById('diceThrow').hidden = false;
             document.getElementById('openAssumption').hidden = false;
             document.getElementById('openAccusation').hidden = false;
@@ -121,11 +103,10 @@ function show_game(e) {
                 document.getElementById('divDices').hidden = true;
             }
 
-            if (dices_thrown || (e.RESULTS[2].dice_number[0] < 7 && e.RESULTS[2].dice_number[0] > 0)) {
+            if (((dices_thrown && e.RESULTS[2].dice_number[0] !== 7) || (e.RESULTS[2].dice_number[0] < 7 && e.RESULTS[2].dice_number[0] > 0)) && !assumption_making && !accusation_making) {
                 document.getElementById('diceThrow').hidden = true;
                 document.getElementById('divDices').hidden = e.RESULTS[2].dice_number[0] === 0;
             }
-
 
             if (assumption_making){
                 document.getElementById('diceThrow').hidden = true;
@@ -394,15 +375,14 @@ function makeAssumption() {
         if (responseJSON.RESULTS[0].e){
             show_error(responseJSON.RESULTS[0].e[0]);
         }
+        else if (responseJSON.RESULTS[0].res){
+            show_error(responseJSON.RESULTS[0].res[0])
+            closeAssumption();
+        }
         else {
-            if (responseJSON.RESULTS[0].res === 'YOU WON'){
-                alert('Вы победили');
-                window.location.href = 'index.html';
-            }
-            else {
-                alert('Вы проиграли. Однако вы можете понаблюдать за игрой :)')
-            }
-            closeAccusation();
+            alert(`Вы получили новую карту: ${responseJSON.RESULTS[1].description[0]}`);
+            assumption_made = true;
+            closeAssumption();
         }
     });
 }
@@ -434,14 +414,15 @@ function makeAccusation() {
         if (responseJSON.RESULTS[0].e){
             show_error(responseJSON.RESULTS[0].e[0]);
         }
-        else if (responseJSON.RESULTS[0].res){
-            show_error(responseJSON.RESULTS[0].res[0])
-            closeAssumption();
-        }
         else {
-            alert(`Вы получили новую карту: ${responseJSON.RESULTS[1].description[0]}`);
-            assumption_made = true;
-            closeAssumption();
+            if (responseJSON.RESULTS[0].res === 'YOU WON'){
+                alert('Вы победили');
+                window.location.href = 'index.html';
+            }
+            else {
+                alert('Вы проиграли. Однако вы можете понаблюдать за игрой :)')
+            }
+            closeAccusation();
         }
     });
 }
