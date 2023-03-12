@@ -1,7 +1,6 @@
 let token;
 let gameStarted = false;
 let inMainMenu = true;
-let pass = null;
 let chosenPersona = 0;
 const personas = ['',"orchid","peacock",'scarlet','mustard','plum','green']
 
@@ -151,6 +150,10 @@ function newGame() {
             return show_error('ошибка сети)');
         }
     }).then((responseJSON) => {
+        setCookie('gameID', responseJSON.RESULTS[0].Game_id[0])
+        if (responseJSON.RESULTS[1].Game_password !== undefined){
+            setCookie('gameID',responseJSON.RESULTS[1].Game_password[0])
+        }
         inGameNow(responseJSON)
     });
 }
@@ -184,12 +187,10 @@ function connectGame(){
         if (checkSqlErrors(responseJSON)){
             if (!responseJSON.RESULTS[0].e){
                 console.log(responseJSON)
-                let game_id = responseJSON.RESULTS[0].Game_id[0];
+                setCookie('gameID', responseJSON.RESULTS[0].Game_id[0]);
                 if (responseJSON.RESULTS[1].Game_password !== undefined){
-                    pass = responseJSON.RESULTS[1].Game_password[0]
+                    setCookie('pass',responseJSON.RESULTS[1].Game_password[0]);
                 }
-                setCookie('gameID', game_id)
-                setCookie('pass', pass)
             }
         }
         inGameNow(responseJSON)
@@ -261,7 +262,7 @@ function updateRoomInfo(e){
     if (getCookie('login') === e.RESULTS[1].game_admin[0]){
         if ( e.RESULTS[3].login.length >= 3)
         document.getElementById('gameStart').removeAttribute('hidden')
-        pass === null ? gPass.innerHTML = '<div>У данной комнаты нет пароля</div>' : gPass.innerHTML = '<div>' + pass + '</div>'
+        getCookie('pass') === null ? gPass.innerHTML = '<div>У данной комнаты нет пароля</div>' : gPass.innerHTML = '<div>' + getCookie('pass') + '</div>'
     }
 
 
