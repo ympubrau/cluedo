@@ -228,6 +228,11 @@ function inGameNow(e){
 
 function updateRoomInfo(e){
     console.log(e)
+
+    if (e.RESULTS[5].status){
+        window.location.href = 'game.html';
+        console.log(responseJSON);
+    }
     displayFreeGames(e.RESULTS[0])
     let playersDiv = document.getElementById('listPLayers')
     let gAdmin = document.getElementById('gameAdmin')
@@ -248,6 +253,7 @@ function updateRoomInfo(e){
     console.log(getCookie('login'))
     console.log(e.RESULTS[1].game_admin)
     if (getCookie('login') === e.RESULTS[1].game_admin[0]){
+        if ( e.RESULTS[3].login.length >= 3)
         document.getElementById('gameStart').removeAttribute('hidden')
     }
 
@@ -371,9 +377,13 @@ function startGame(){
             return show_error('ошибка сети)');
         }
     }).then((responseJSON) => {
-        window.location.href = 'game.html';
+        if (responseJSON.RESULTS[0].error){
+            alert(responseJSON.RESULTS[0].error)
+        }
+        else {
+            window.location.href = 'game.html';
+        }
         console.log(responseJSON);
-
     });
 
 }
