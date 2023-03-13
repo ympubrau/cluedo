@@ -52,7 +52,7 @@ function show_game(e) {
     if (checkSqlErrors(e)) {
         if (e.RESULTS[0].e){
             if (e.RESULTS[0].e[0] === 'Game_ended'){
-                show_error(e.RESULTS[1].description[0] + " " + e.RESULTS[1].description[1] + " " + e.RESULTS[1].description[2] + " ")
+                show_error(e.RESULTS[2].winner[0] + ' Раскрыл преступление!' +"\n" + e.RESULTS[1].description[0] + " убил с помощью " + e.RESULTS[1].description[1] + " в " + e.RESULTS[1].description[2] + " ")
                 return;
             }
         }
@@ -415,9 +415,8 @@ function makeAccusation() {
             show_error(responseJSON.RESULTS[0].e[0]);
         }
         else {
-            if (responseJSON.RESULTS[0].res === 'YOU WON'){
+            if (responseJSON.RESULTS[0].res[0] === 'YOU WON'){
                 alert('Вы победили');
-                window.location.href = 'index.html';
             }
             else {
                 alert('Вы проиграли. Однако вы можете понаблюдать за игрой :)')

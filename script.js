@@ -340,7 +340,6 @@ function choosePersonaSql(e){
     });
 }
 
-
 function choosePersona(pers, nickname){
     let orc;
     if (nickname === undefined){
@@ -384,13 +383,15 @@ function startGame(){
             return show_error('ошибка сети)');
         }
     }).then((responseJSON) => {
+        console.log('in start game');
+        console.log(responseJSON);
+        console.log('end')
         if (responseJSON.RESULTS[0].error){
             alert(responseJSON.RESULTS[0].error)
         }
         else {
-            window.location.href = 'game.html';
+            //window.location.href = 'game.html';
         }
-        console.log(responseJSON);
     });
 
 }
