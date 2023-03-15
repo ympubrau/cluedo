@@ -19,6 +19,33 @@ for (let i = 1; i <= 94; i++){
     },false);
 }
 
+for (let j = 0; j < 5; j++){
+    let items = document.getElementsByClassName('s' + j);
+    for (let e of items){
+        e.addEventListener('click',function(){
+            if (e.innerHTML.includes('-')){
+                e.classList.remove('minus');
+                e.classList.add('question');
+                e.innerHTML = ' ? ';
+                return;
+            }
+            if (e.innerHTML.includes('?')){
+                e.classList.remove('question');
+                e.classList.add('plus');
+                e.innerHTML = ' + ';
+                return;
+            }
+            if (e.innerHTML.includes('+')){
+                e.classList.remove('plus');
+                e.classList.add('minus');
+                e.innerHTML = ' - ';
+            }
+        })
+    }
+}
+
+
+
 window.onload = function (){
     const url = "https://sql.lavro.ru/call.php?";
     let fd = new FormData();
@@ -60,7 +87,7 @@ function show_game(e) {
                 return;
             }
             if (e.RESULTS[0].e[0] === 'игрок пропускает ход'){
-                location.reload();
+                return;
             }
         }
 
@@ -92,12 +119,18 @@ function show_game(e) {
 
         let myIndex = logins.indexOf(getCookie('login'));
         let colorsCopy = colors.slice()
-        console.log(myIndex)
-        document.getElementsByClassName('st1')[0].style.backgroundColor = colorsCopy[myIndex];
+        document.getElementsByClassName('t1')[0].style.backgroundColor = colorsCopy[myIndex];
         logins.splice(myIndex, 1);
         colorsCopy.splice(myIndex,1)
         for (let q = 0; q < logins.length; q++){
-            document.getElementsByClassName('st' + (q+2))[0].style.backgroundColor = colorsCopy[q];
+            document.getElementsByClassName('t' + (q+2))[0].style.backgroundColor = colorsCopy[q];
+            if (q > 1){
+                document.getElementsByClassName('t' + (q + 2))[0].hidden = false;
+                let t = document.getElementsByClassName('s' + q)
+                for (let g of t){
+                    g.hidden = false;
+                }
+            }
         }
 
         document.getElementsByClassName('current')[0].innerText = e.RESULTS[2].login;
@@ -171,7 +204,20 @@ function show_game(e) {
                     e.RESULTS[5].room[0] + ' c помощью ' +
                     e.RESULTS[5].weapon[0] + '.'
             }
-        } else document.getElementById('assumption').innerText = '';
+        }
+        if (e.RESULTS[7].assuming_player[0] != null && e.RESULTS[7].assuming_player[0] !== undefined){
+            document.getElementById('accusations').innerHTML = '<b>Разоблачения:</b> <br>';
+            for (let q = 0; q < e.RESULTS[7].assuming_player.length; q++){
+                document.getElementById('accusations').innerHTML +=
+                    '<div>' +
+                    e.RESULTS[7].assuming_player[q] + ' обвинил ' +
+                    e.RESULTS[7].supposed_persona[q] + ' в убйистве в ' +
+                    e.RESULTS[7].room[q] + ' c помощью ' +
+                    e.RESULTS[7].weapon[q] + '.' +
+                    '</div> <br>'
+            }
+
+        }
     }
 }
 
@@ -223,7 +269,6 @@ function endTurn(){
     document.getElementById('diceThrow').hidden = true;
     document.getElementById('divDices').hidden = true;
     document.getElementById('openAssumption').hidden = true;
-    document.getElementById('assumption_commentary').hidden = true;
     document.getElementById('openAccusation').hidden = true;
     document.getElementById('endTurn').hidden = true;
 
@@ -252,13 +297,15 @@ function endTurn(){
             show_error('Сейчас не ваш ход');
         }
         else {
-            document.getElementById('assumption').hidden = true;
             showAvailableCells([]);
         }
     });
 
 }
 
+function openAccus(){
+    document.getElementById('accusations').hidden = document.getElementById('accusations').hidden !== true;
+}
 function showAvailableCells(e){
     for (let q of allCells)
         if (q.classList.contains('canChoose'))

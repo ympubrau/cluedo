@@ -75,7 +75,7 @@ body {
     background-color: beige;
     display: block;
     position: absolute;
-    width: 25%;
+    width: 22%;
     right: 10px;
 }
 
@@ -137,6 +137,10 @@ button:hover:enabled{
 
 .minus{
     background-color: #fa5656;
+}
+
+.question{
+    background-color: #ecec41;
 }
 
 .plus{
