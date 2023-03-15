@@ -57,7 +57,7 @@ function show_game(e) {
             }
             if (e.RESULTS[0].e[0] === 'Ход переходит к другому игроку'){
                 show_error("Ваш ход кончился");
-                return;
+                location.reload();
             }
         }
 

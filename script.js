@@ -152,8 +152,10 @@ function newGame() {
     }).then((responseJSON) => {
         setCookie('gameID', responseJSON.RESULTS[0].Game_id[0])
         if (responseJSON.RESULTS[1].Game_password !== undefined && responseJSON.RESULTS[1].Game_password !== null){
+            console.log('qwe')
             setCookie('pass',responseJSON.RESULTS[1].Game_password[0]);
         }
+        else setCookie('pass',null);
         inGameNow(responseJSON)
     });
 }
@@ -260,9 +262,8 @@ function updateRoomInfo(e){
     console.log(getCookie('login'))
     console.log(e.RESULTS[1].game_admin)
     if (getCookie('login') === e.RESULTS[1].game_admin[0]){
-        if ( e.RESULTS[3].login.length >= 3)
-        document.getElementById('gameStart').removeAttribute('hidden')
-        getCookie('pass') === 'null' ? gPass.innerHTML = '<div>У данной комнаты нет пароля</div>' : gPass.innerHTML = '<div>' + getCookie('pass') + '</div>'
+        if ( e.RESULTS[3].login.length >= 3) document.getElementById('gameStart').removeAttribute('hidden')
+        getCookie('pass') == null ? gPass.innerHTML = '<div>У данной комнаты нет пароля</div>' : gPass.innerHTML = '<div>' + getCookie('pass') + '</div>'
     }
 
 
