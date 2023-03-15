@@ -8,6 +8,7 @@ let move_done = false;
 let assumption_making = false;
 let assumption_made = false;
 let seconds = 0;
+let colors = ['red','blue','green','yellow','pink','black'];
 let timerQ;
 let accusation_making = false;
 const cell_names = ['Бильярдная','Библиотека','Кабинет','Кухня','Зимний сад','Гостинная','Бальный зал','Холл','Столовая']
@@ -64,7 +65,7 @@ function show_game(e) {
         }
 
 
-        let logins = e.RESULTS[1].login;
+        let logins = e.RESULTS[1].login.slice();
         let cells = e.RESULTS[1].cell_id;
 
         for (let i = 1; i < 10; i++)
@@ -74,9 +75,8 @@ function show_game(e) {
             document.querySelector('.cell-' + i).innerHTML = i + '<br>';
 
 
-
         for (let i = 0; i < cells.length; i++) {
-            document.querySelector('.cell-' + cells[i]).innerHTML += "<b style='color: #333cff'> " + (logins[i] + "</b>");
+            document.querySelector('.cell-' + cells[i]).innerHTML += `<b style='color: ${colors[i]}'> ` + (logins[i] + "</b>");
         }
 
 
@@ -88,6 +88,16 @@ function show_game(e) {
             o.classList.remove('minus');
             o.classList.add('plus');
             o.innerText = '+';
+        }
+
+        let myIndex = logins.indexOf(getCookie('login'));
+        let colorsCopy = colors.slice()
+        console.log(myIndex)
+        document.getElementsByClassName('st1')[0].style.backgroundColor = colorsCopy[myIndex];
+        logins.splice(myIndex, 1);
+        colorsCopy.splice(myIndex,1)
+        for (let q = 0; q < logins.length; q++){
+            document.getElementsByClassName('st' + (q+2))[0].style.backgroundColor = colorsCopy[q];
         }
 
         document.getElementsByClassName('current')[0].innerText = e.RESULTS[2].login;
@@ -138,7 +148,6 @@ function show_game(e) {
         }
 
         if (e.RESULTS[5].assuming_player[0] != null && e.RESULTS[5].assuming_player[0] !== undefined){
-            document.getElementById('openAssumption').hidden = true;
             document.getElementById('assumption').innerText = '';
             document.getElementById('assumption').hidden = false;
             document.getElementById('assumption_commentary').hidden = false;
