@@ -55,7 +55,13 @@ function show_game(e) {
                 show_error(e.RESULTS[2].winner[0] + ' Раскрыл преступление!' +"\n" + e.RESULTS[1].description[0] + " убил с помощью " + e.RESULTS[1].description[1] + " в " + e.RESULTS[1].description[2] + " ")
                 return;
             }
+            if (e.RESULTS[0].e[0] === 'Ход переходит к другому игроку'){
+                show_error("Ваш ход кончился");
+                return;
+            }
         }
+
+
         console.log(e);
         let logins = e.RESULTS[1].login;
         let cells = e.RESULTS[1].cell_id;
