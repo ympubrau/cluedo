@@ -7,7 +7,8 @@ let dices_thrown = false;
 let move_done = false;
 let assumption_making = false;
 let assumption_made = false;
-let previous_cells = [];
+let seconds = 0;
+let timerQ;
 let accusation_making = false;
 const cell_names = ['Бильярдная','Библиотека','Кабинет','Кухня','Зимний сад','Гостинная','Бальный зал','Холл','Столовая']
 for (let i = 1; i <= 94; i++){
@@ -48,6 +49,8 @@ window.onload = function (){
 }
 
 function show_game(e) {
+    seconds = 0;
+    clearInterval(timerQ);
     document.querySelector(".status").innerText = ' ';
     if (checkSqlErrors(e)) {
         if (e.RESULTS[0].e){
@@ -55,23 +58,21 @@ function show_game(e) {
                 show_error(e.RESULTS[2].winner[0] + ' Раскрыл преступление!' +"\n" + e.RESULTS[1].description[0] + " убил с помощью " + e.RESULTS[1].description[1] + " в " + e.RESULTS[1].description[2] + " ")
                 return;
             }
-            if (e.RESULTS[0].e[0] === 'Ход переходит к другому игроку'){
-                show_error("Ваш ход кончился");
+            if (e.RESULTS[0].e[0] === 'игрок пропускает ход'){
                 location.reload();
             }
         }
 
 
-        console.log(e);
         let logins = e.RESULTS[1].login;
         let cells = e.RESULTS[1].cell_id;
 
-        for (let i = 1; i < 10; i++){
+        for (let i = 1; i < 10; i++)
             document.querySelector('.cell-' + i).innerHTML = cell_names[i-1] + ' (' + i + ')' + '<br>';
-        }
-        for (let i = 10; i < 95; i++){
+
+        for (let i = 10; i < 95; i++)
             document.querySelector('.cell-' + i).innerHTML = i + '<br>';
-        }
+
 
 
         for (let i = 0; i < cells.length; i++) {
@@ -90,7 +91,14 @@ function show_game(e) {
         }
 
         document.getElementsByClassName('current')[0].innerText = e.RESULTS[2].login;
-        document.getElementsByClassName('time')[0].innerText = e.RESULTS[2].end[0].split(' ')[1];
+        timerQ = setInterval(function () {
+            let timer = e.RESULTS[2].end[0] - seconds;
+            let mins =  Math.floor(timer / 60);
+            let secs = Math.floor(timer % 60);
+            document.getElementsByClassName('time')[0].innerHTML = (mins < 10 ? ('0' + mins): mins) + ":" +  (secs < 10 ? ('0' + secs): secs);
+            seconds += 1
+        }, 1000);
+
 
         if (e.RESULTS[2].login[0] === getCookie('login')){
 
