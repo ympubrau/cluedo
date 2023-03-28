@@ -1,0 +1,1102 @@
+#DROP FUNCTION random_int;
+CREATE FUNCTION `random_int`() RETURNS INT(10) UNSIGNED 
+RETURN RAND()*256*256*256*256
+
+
+#DROP FUNCTION check_token; 
+CREATE FUNCTION `check_token`(tk int unsigned) RETURNS VARCHAR(100) SQL SECURITY INVOKER 
+BEGIN
+DECLARE lg VARCHAR(100) DEFAULT (SELECT login FROM Tokens WHERE token = tk); 
+
+IF lg IS NOT NULL THEN 
+	UPDATE Tokens SET dt = NOW() WHERE token = tk; 
+END IF;
+ 
+RETURN lg; 
+END
+
+
+
+#DROP FUNCTION check_room; 
+CREATE FUNCTION `check_room`(g_id int unsigned) RETURNS BOOL SQL SECURITY INVOKER 
+BEGIN
+RETURN EXISTS(SELECT * FROM Games WHERE id = g_id); 
+END
+
+
+
+#DROP FUNCTION check_room_pass; 
+CREATE FUNCTION `check_room_pass`(g_id INT UNSIGNED, g_code INT UNSIGNED) RETURNS BOOL SQL SECURITY INVOKER 
+BEGIN
+DECLARE q int unsigned DEFAULT check_token(SELECT code FROM Games WHERE id = g_id limit 1);
+
+IF (SELECT code FROM Games WHERE id = g_id limit 1) = g_code) or (ISNULL(q)) THEN
+	RETURN 1;
+END IF;
+RETURN 0;
+END
+
+
+
+
+#DROP FUNCTION game_started; 
+CREATE FUNCTION `game_started`(g_id INT UNSIGNED) RETURNS BOOL SQL SECURITY INVOKER 
+RETURN EXISTS (SELECT * FROM Current_moves WHERE player_id in (select id from Players hwhere game_id = g_id;));
+
+
+
+#DROP FUNCTION check_turn; 
+CREATE FUNCTION `check_turn`(tk int UNSIGNED, g_id INT UNSIGNED) RETURNS BOOL SQL SECURITY INVOKER 
+
+RETURN EXISTS (select * from Current_moves where player_id = (select id from Players join Tokens using(login) where token = tk and game_id = g_id limit 1));
+
+
+
+#DROP FUNCTION next_player; 
+CREATE FUNCTION `next_player`(n int UNSIGNED, g_id INT UNSIGNED) RETURNS int SQL SECURITY INVOKER 
+BEGIN
+
+if exists(select * from Players where game_id = g_id and id not in (select accusing_player_id from Accusations where accusing_player_id  in (select id from Players where game_id = g_id)) and number > n order by number asc) THEN
+	RETURN (select number from Players where game_id = g_id and id not in (select accusing_player_id from Accusations where accusing_player_id  in (select id from Players where game_id = g_id)) and number > n order by number asc limit 1);
+	ELSE
+	RETURN (select number from Players where game_id = g_id and id not in (select accusing_player_id from Accusations where accusing_player_id  in (select id from Players where game_id = g_id )) order by number desc limit 1);
+end if;
+end
+
+
+
+
+#DROP FUNCTION next_player; 
+CREATE FUNCTION `next_player`(n int UNSIGNED, g_id INT UNSIGNED) RETURNS int SQL SECURITY INVOKER 
+BEGIN
+
+if exists(select * from Players where game_id = g_id and id not in (select accusing_player_id from Accusations where accusing_player_id  in (select id from Players where game_id = g_id)) and number > n order by number asc) THEN
+	RETURN (select number from Players where game_id = g_id and id not in (select accusing_player_id from Accusations where accusing_player_id  in (select id from Players where game_id = g_id)) and number > n order by number asc limit 1);
+	ELSE
+	RETURN (select number from Players where game_id = g_id and id not in (select accusing_player_id from Accusations where accusing_player_id  in (select id from Players where game_id = g_id )) order by number desc limit 1);
+end if;
+end
+
+
+
+
+#DROP FUNCTION check_win_combination; 
+CREATE FUNCTION `check_win_combination`(g_id INT UNSIGNED, pers INT UNSIGNED, tool INT UNSIGNED, room INT UNSIGNED) RETURNS BOOL SQL SECURITY INVOKER 
+
+RETURN 
+pers in (
+	select card_type_id from Cards 
+	join Card_types on card_type_id = Card_types.id 
+	where Cards.id not in 
+		(select card_id from Player_cards join Cards on card_id = id where game_id = g_id) 
+	and game_id = g_id)
+ 
+AND tool in (
+	select card_type_id from Cards 
+	join Card_types on card_type_id = Card_types.id 
+	where Cards.id not in 
+		(select card_id from Player_cards join Cards on card_id = id where game_id = g_id) 
+	and game_id = g_id)
+
+AND room in (
+        select card_type_id from Cards 
+	join Card_types on card_type_id = Card_types.id 
+	where Cards.id not in 
+		(select card_id from Player_cards join Cards on card_id = id where game_id = g_id) 
+	and game_id = g_id);
+
+
+
+#DROP PROCEDURE sign_in;
+CREATE PROCEDURE `sign_in`(lg VARCHAR (100), pw VARCHAR(100)) 
+COMMENT 'Аутенфикация, входные данные (логин, пароль)'
+sign_in: 
+BEGIN 
+DECLARE rnd INT UNSIGNED;
+
+IF NOT EXISTS(SELECT * FROM Users WHERE login=lg AND password=pw) THEN 
+	SELECT 'Неправильный логин или пароль' AS error; 
+	LEAVE sign_in; 
+END IF; 
+
+start transaction;
+DELETE FROM Tokens WHERE TIMESTAMPDIFF(MINUTE, dt, NOW()) > 30; 
+
+REPEAT SET rnd = random_int(); 
+	INSERT IGNORE INTO Tokens VALUES(lg, rnd, NOW()); 
+	UNTIL row_count() = 1 
+END REPEAT; 
+commit;
+
+SELECT rnd AS token; 
+
+END
+
+
+#DROP PROCEDURE register;
+CREATE PROCEDURE `register`(lg VARCHAR (100), pw VARCHAR(100)) 
+COMMENT 'Регистрация и логин нового пользователя (логин, пароль)'
+create_user: 
+BEGIN 
+IF pw IS NULL OR LENGTH(pw) < 5 THEN 
+	SELECT "Пароль должен быть минимум 5 символов" AS error; 
+	LEAVE create_user; 
+END IF; 
+
+IF lg IS NULL OR LENGTH(lg) < 2 THEN 
+	SELECT "Логин должен быть минимум 5 символов" AS error; 
+	LEAVE create_user; 
+END IF; 
+
+
+INSERT IGNORE INTO Users VALUES(lg,pw); 
+
+IF row_count() = 0 THEN 
+	SELECT "Этот логин уже занят" AS error; 
+	LEAVE create_user; 
+END IF; 
+
+CALL sign_in(lg,pw); 
+END
+
+
+#DROP PROCEDURE free_rooms;
+CREATE PROCEDURE `free_rooms`(tk INT UNSIGNED)
+COMMENT 'Показывает свободные комнаты (токен игрока)' 
+free_rooms: 
+BEGIN
+DECLARE lg VARCHAR(100) DEFAULT check_token(tk);
+
+IF lg IS null THEN 
+	SELECT "Authorization error"; 
+	LEAVE room_state; 
+END IF;
+
+SELECT id AS available_games FROM Games WHERE code IS NULL;
+END
+
+
+
+#DROP PROCEDURE new_game;
+CREATE PROCEDURE `new_game`(tk INT UNSIGNED, pass INT UNSIGNED)
+COMMENT 'Создает новую игровую комнату, принимает токен игрока и 0 или 1 (1 - пароль нужен, 0 - пароль не нужен)' 
+new_game: 
+BEGIN 
+DECLARE cd INT UNSIGNED; 
+DECLARE lg VARCHAR(100) DEFAULT check_token(tk); 
+DECLARE g_id INT;
+
+IF lg IS null THEN 
+	SELECT "Ошибка аутенфикации"; 
+	LEAVE new_game; 
+END IF; 
+
+IF pass THEN
+	SET cd = random_int(); 
+ELSE
+	SET cd = NULL;
+END IF; 
+
+start transaction;
+INSERT INTO Games VALUES(NULL, cd); 
+
+SET g_id = last_insert_id();
+INSERT INTO Players(login, game_id) Values (lg,g_id);
+INSERT INTO Game_admins VALUES(lg,g_id);
+commit;
+
+SELECT g_id as Game_id;
+
+IF pass THEN
+	SELECT cd AS Game_password;
+END IF;
+END
+
+
+#DROP PROCEDURE enter_game;
+CREATE PROCEDURE `enter_game`(tk INT UNSIGNED, g_id INT UNSIGNED, 
+g_code INT UNSIGNED)
+COMMENT 'Игрок заходит в игровую комнату (токен комнаты, айди комнаты, пароль комнаты(null - если нет пароля))' 
+enter_game: 
+BEGIN 
+DECLARE lg VARCHAR(100) DEFAULT check_token(tk);
+
+IF lg IS null THEN 
+	SELECT "Authorization error"; 
+	LEAVE enter_game; 
+END IF;
+
+IF NOT(check_room(g_id)) THEN 
+	SELECT 'Такой игровой комнаты не существует' AS error; 
+	LEAVE enter_game; 
+END IF; 
+
+IF NOT (check_room_pass(g_id, g_code)) THEN
+	SELECT 'Неверный пароль от комнаты' AS error; 
+	LEAVE enter_game; 
+END IF; 
+
+IF EXISTS(SELECT * FROM Players WHERE game_id = g_id and login = lg) THEN 
+	SELECT 'Этот игрок уже в комнате' AS e; 
+	LEAVE enter_game; 
+END IF; 
+
+
+INSERT INTO Players(login, game_id) Values (lg, g_id);
+SELECT g_id as Game_id;
+
+END
+
+
+#DROP PROCEDURE room_state;
+CREATE PROCEDURE `room_state`(tk INT UNSIGNED, g_id INT UNSIGNED)
+COMMENT 'Список игроков в комнате (токен игрока, айди комнаты).' 
+room_state: 
+BEGIN
+DECLARE lg VARCHAR(100) DEFAULT check_token(tk);
+
+IF lg IS null THEN 
+	SELECT "Authorization error"; 
+	LEAVE room_state; 
+END IF;
+
+SELECT id AS available_games FROM Games WHERE code IS NULL;
+
+IF NOT(check_room(g_id)) THEN 
+	SELECT 'Такой игровой комнаты не существует' AS error; 
+	LEAVE room_state; 
+END IF; 
+
+
+SELECT login AS game_admin FROM Game_admins WHERE game_id = g_id;
+SELECT login FROM Players WHERE game_id = g_id;
+SELECT login, description FROM Players 
+	LEFT JOIN Card_types ON persona = Card_types.id 
+	WHERE Players.game_id = g_id and persona is null
+	UNION(
+		SELECT login, description FROM Players 
+		JOIN Cards ON persona = Cards.id
+	  JOIN Card_types on card_type_id = Card_types.id
+		WHERE Players.game_id = g_id);
+
+SELECT id, description FROM Card_types WHERE type = 'persona' AND id NOT IN 
+	(SELECT Card_types.id FROM Card_types JOIN Cards on Card_types.id = card_type_id WHERE game_id = g_id);
+
+IF (game_started(g_id)) THEN
+	SELECT 'Игра уже начата' as status;
+END IF;
+
+END
+
+
+
+#drop procedure choose_persona;
+CREATE PROCEDURE `choose_persona`(tk INT UNSIGNED, g_id INT UNSIGNED, pers INT UNSIGNED)
+COMMENT 'Выбор персонажа для игрока, который уже состоит в игровой комнате (токен комнаты, айди комнаты, пароль комнаты(null - если нет пароля), номер персонажа (1 - доктор Орчид, 2 - миссис Пикок, 3 - мисс Скарлет, 4 - полковник мастард, 5 - профессор Плам, 6 - преподобный Грин))' 
+choose_persona: 
+BEGIN 
+DECLARE lg VARCHAR(100) DEFAULT check_token(tk);
+DECLARE c_id INT UNSIGNED;
+
+IF lg IS null THEN 
+	SELECT "Authorization error"; 
+	LEAVE choose_persona; 
+END IF;
+
+IF NOT (check_room(g_id)) THEN 
+	SELECT 'Такой игровой комнаты не существует' AS error; 
+	LEAVE choose_persona; 
+END IF; 
+
+IF NOT EXISTS(SELECT * FROM Players WHERE game_id = g_id and login = lg) THEN 
+	SELECT 'Данный игрок не в комнате' AS error; 
+	LEAVE choose_persona; 
+END IF; 
+	
+IF (game_started(g_id)) THEN
+	SELECT 'Игра уже начата';
+	Leave choose_persona;
+END IF;
+
+IF NOT EXISTS(SELECT * FROM Card_types WHERE id = pers and type = 'persona') 
+THEN 
+	SELECT 'Такого персонажа не существует' AS error; 
+	LEAVE choose_persona; 
+END IF; 
+
+IF EXISTS(SELECT * FROM Cards WHERE game_id = g_id and card_type_id = pers) THEN 
+	SELECT 'Этот персонаж уже занят' AS error; 
+	LEAVE choose_persona; 
+END IF; 
+
+SET c_id = (SELECT persona FROM Players WHERE login = lg AND game_id = g_id);
+start transaction;
+DELETE FROM Cards WHERE id = c_id;
+
+INSERT INTO Cards VALUES(NULL, g_id, pers);
+UPDATE Players SET persona = last_insert_id() WHERE login = lg AND 
+game_id = g_id;
+commit; 
+END
+
+
+
+#drop PROCEDURE `start_game`;
+CREATE PROCEDURE `start_game`(tk INT UNSIGNED, g_id INT UNSIGNED)
+COMMENT 'Начало игры. Процедуру может вызывать только админ игровой комнаты. На вход - токен, айди комнаты.' 
+start_game: 
+BEGIN
+DECLARE lg VARCHAR(100) DEFAULT check_token(tk);
+DECLARE players_amount int UNSIGNED;
+DECLARE all_cards_amount int UNSIGNED;
+DECLARE cards_amount int UNSIGNED;
+
+IF lg IS null THEN 
+	SELECT "Authorization error"; 
+	LEAVE start_game; 
+END IF;
+
+IF NOT (check_room(g_id)) THEN 
+	SELECT 'Такой игровой комнаты не существует' AS error; 
+	LEAVE start_game; 
+END IF; 
+
+IF (game_started(g_id)) THEN
+	SELECT 'Игра уже начата';
+	Leave start_game;
+END IF;
+
+IF NOT EXISTS(SELECT * FROM Game_admins WHERE login = lg AND game_id = g_id) THEN
+	SELECT 'Игру может начать только админ игровой комнаты' AS error;
+	LEAVE start_game;
+END IF;
+
+SET players_amount = (SELECT count(*) FROM Players where game_id = g_id);
+
+IF (players_amount < 3 OR players_amount > 6) THEN
+	SELECT 'Игроков должно быть от 3 до 6' AS error;
+	LEAVE start_game; 
+END IF;
+
+IF EXISTS (SELECT persona FROM Players where persona IS NULL and game_id = g_id) THEN
+	SELECT 'Все игроки должны выбрать персонажа' as error;
+	LEAVE start_game;
+END IF;
+
+CREATE TEMPORARY TABLE tmp_seats(number INT AUTO_INCREMENT PRIMARY KEY, 
+	player_id INT);
+
+
+INSERT INTO tmp_seats SELECT NULL, id FROM Players where game_id = g_id ORDER BY RAND();
+
+UPDATE Players SET number = (SELECT number FROM tmp_seats WHERE player_id = id) WHERE game_id = g_id;
+
+SELECT * FROM tmp_seats;
+
+
+CREATE TEMPORARY TABLE win_combination (number INT AUTO_INCREMENT PRIMARY KEY, cardType_id INT UNSIGNED);
+
+INSERT INTO win_combination SELECT NULL, id FROM Card_types 
+	WHERE type = 'persona' ORDER BY RAND() LIMIT 1;
+INSERT INTO win_combination SELECT NULL, id FROM Card_types 
+	WHERE type = 'tool' ORDER BY RAND() LIMIT 1;
+INSERT INTO win_combination SELECT NULL, id FROM Card_types 
+	WHERE type = 'room' ORDER BY RAND() LIMIT 1;
+
+CREATE TEMPORARY TABLE cards_for_all(number INT AUTO_INCREMENT PRIMARY KEY,
+	cardType_id INT UNSIGNED);
+
+CREATE TEMPORARY TABLE tmp_cards(number INT AUTO_INCREMENT PRIMARY KEY,
+	cardType_id INT UNSIGNED);
+
+IF (players_amount = 4 or players_amount = 5) THEN
+	IF (players_amount = 4) THEN
+		SET all_cards_amount = 2;
+	END IF;
+	
+	IF (players_amount = 5) THEN
+		SET all_cards_amount = 3;
+	END IF;
+	
+	INSERT INTO cards_for_all SELECT NULL, id FROM Card_types 
+		where id not in (select cardType_id from win_combination)
+		ORDER BY RAND() LIMIT all_cards_amount;
+
+	INSERT INTO tmp_cards SELECT NULL, id FROM Card_types 
+		WHERE id NOT IN (SELECT cardType_id FROM win_combination) and id NOT IN(SELECT cardType_id FROM cards_for_all) ORDER BY RAND();
+
+ELSE 
+	INSERT INTO tmp_cards SELECT NULL, id FROM Card_types 
+		WHERE id NOT IN (SELECT cardType_id FROM win_combination) ORDER BY RAND();
+END IF;
+
+CREATE TEMPORARY TABLE tmp(number int AUTO_INCREMENT PRIMARY KEY, player_id INT);
+
+SET cards_amount = 18 div players_amount;
+
+INSERT INTO tmp SELECT NULL, id FROM Players 
+	JOIN (SELECT NULL FROM tmp_cards LIMIT cards_amount)t 
+	WHERE game_id = g_id ORDER BY RAND();
+
+SELECT * FROM tmp NATURAL JOIN tmp_cards;
+
+START TRANSACTION;
+#check player_amount
+INSERT INTO Cards 
+	(SELECT null, g_id, cardType_id FROM tmp NATURAL JOIN tmp_cards);
+
+IF (players_amount = 4 or players_amount = 5) THEN
+	INSERT INTO Cards 
+	(SELECT null, g_id, cardType_id from cards_for_all join (SELECT id FROM Players where game_id = g_id)s);
+END IF;
+
+	Insert into Cards (select null,g_id, cardType_id from win_combination);
+
+
+INSERT INTO Player_cards 
+	SELECT player_id, Cards.id as card_id
+		FROM tmp NATURAL JOIN tmp_cards
+		JOIN Cards on card_type_id = cardType_id;
+
+IF (players_amount = 4) THEN
+	insert into Player_cards 
+	select (select id from Players where number = 1 and game_id = g_id) as player_id, id from Cards left join Player_cards on Cards.id = card_id where game_id = g_id and card_type_id not in (SELECT cardType_id FROM win_combination)
+and Cards.id not in(select persona from Players where game_id = g_id) and isnull(player_id) group by card_type_id;
+
+insert into Player_cards 
+	select (select id from Players where number = 2 and game_id = g_id) as player_id, id from Cards left join Player_cards on Cards.id = card_id where game_id = g_id and card_type_id not in (SELECT cardType_id FROM win_combination)
+and Cards.id not in(select persona from Players where game_id = g_id) and isnull(player_id) group by card_type_id;
+
+insert into Player_cards 
+	select (select id from Players where number = 3 and game_id = g_id) as player_id, id from Cards left join Player_cards on Cards.id = card_id where game_id = g_id and card_type_id not in (SELECT cardType_id FROM win_combination)
+and Cards.id not in(select persona from Players where game_id = g_id) and isnull(player_id) group by card_type_id;
+
+insert into Player_cards 
+	select (select id from Players where number = 4 and game_id = g_id) as player_id, id from Cards left join Player_cards on Cards.id = card_id where game_id = g_id and card_type_id not in (SELECT cardType_id FROM win_combination)
+and Cards.id not in(select persona from Players where game_id = g_id) and isnull(player_id) group by card_type_id;
+END IF;
+
+IF (players_amount = 5) THEN
+	insert into Player_cards 
+	select (select id from Players where number = 1 and game_id = g_id) as player_id, id from Cards left join Player_cards on Cards.id = card_id where game_id = g_id and card_type_id not in (SELECT cardType_id FROM win_combination)
+and Cards.id not in(select persona from Players where game_id = g_id) and isnull(player_id) group by card_type_id;
+
+insert into Player_cards 
+	select (select id from Players where number = 2 and game_id = g_id) as player_id, id from Cards left join Player_cards on Cards.id = card_id where game_id = g_id and card_type_id not in (SELECT cardType_id FROM win_combination)
+and Cards.id not in(select persona from Players where game_id = g_id) and isnull(player_id) group by card_type_id;
+
+insert into Player_cards 
+	select (select id from Players where number = 3 and game_id = g_id) as player_id, id from Cards left join Player_cards on Cards.id = card_id where game_id = g_id and card_type_id not in (SELECT cardType_id FROM win_combination)
+and Cards.id not in(select persona from Players where game_id = g_id) and isnull(player_id) group by card_type_id;
+
+insert into Player_cards 
+	select (select id from Players where number = 4 and game_id = g_id) as player_id, id from Cards left join Player_cards on Cards.id = card_id where game_id = g_id and card_type_id not in (SELECT cardType_id FROM win_combination)
+and Cards.id not in(select persona from Players where game_id = g_id) and isnull(player_id) group by card_type_id;
+
+insert into Player_cards
+	select (select id from Players where number = 5 and game_id = g_id) as player_id, id from Cards left join Player_cards on Cards.id = card_id where game_id = g_id and card_type_id not in (SELECT cardType_id FROM win_combination)
+and Cards.id not in(select persona from Players where game_id = g_id) and isnull(player_id) group by card_type_id;
+END IF;
+
+ #select * from Players where game_id = g_id;	
+#select * from Cards left join Player_cards on Cards.id = card_id where game_id = g_id and card_type_id not in (SELECT cardType_id FROM win_combination);
+
+UPDATE Players SET cell_id = 94 WHERE game_id = g_id;
+
+INSERT INTO Current_moves values ((current_timestamp() + (15 * 100)),0,(Select id from Players where game_id = g_id order by number limit 1));
+Update Current_moves set end = (current_timestamp() + (15 * 100)) where player_id in (select id from Players where game_id = g_id);
+
+Insert into Notes 
+	Select * from Player_cards where player_id in (Select id from Players where game_id = g_id);
+
+Insert into Rooms values
+	(1,(select Cards.id from Cards join Card_types on Card_types.id = card_type_id
+where game_id = g_id and description = 'Бильярдная' limit 1)),
+(2,(select Cards.id from Cards 
+join Card_types on Card_types.id = card_type_id
+where game_id = g_id and description = 'Библиотека' limit 1)),
+(3,(select Cards.id from Cards 
+join Card_types on Card_types.id = card_type_id
+where game_id = g_id and description = 'Кабинет' limit 1)),
+(4,(select Cards.id from Cards 
+join Card_types on Card_types.id = card_type_id
+where game_id = g_id and description = 'Кухня' limit 1)),
+(5,(select Cards.id from Cards 
+join Card_types on Card_types.id = card_type_id
+where game_id = g_id and description = 'Зимний сад' limit 1)),
+(6,(select Cards.id from Cards 
+join Card_types on Card_types.id = card_type_id
+where game_id = g_id and description = 'Гостинная' limit 1)),
+(7,(select Cards.id from Cards 
+join Card_types on Card_types.id = card_type_id
+where game_id = g_id and description = 'Бальный зал' limit 1)),
+(8,(select Cards.id from Cards 
+join Card_types on Card_types.id = card_type_id
+where game_id = g_id and description = 'Холл' limit 1)),
+(9,(select Cards.id from Cards 
+join Card_types on Card_types.id = card_type_id
+where game_id = g_id and description = 'Столовая' limit 1));
+COMMIT;
+
+DROP TEMPORARY TABLE tmp_seats;
+DROP TEMPORARY TABLE tmp_cards;
+DROP TEMPORARY TABLE tmp;
+DROP TEMPORARY TABLE cards_for_all;
+DROP TEMPORARY TABLE win_combination;
+SELECT 'Игра успешно начата' AS notification;
+
+END
+
+
+
+#drop procedure game_state;
+CREATE PROCEDURE `game_state`(tk INT UNSIGNED, g_id INT UNSIGNED)
+game_state: 
+BEGIN
+DECLARE lg VARCHAR(100) DEFAULT check_token(tk);
+declare left_player_id int;
+
+IF lg IS null THEN 
+	SELECT "Authorization error"; 
+	LEAVE game_state; 
+END IF;
+
+IF not (get_lock("end",3)) THEN
+	LEAVE game_state;
+END IF;
+
+IF EXISTS(select * from Players where number = 0 and game_id = g_id) THEN 
+	SELECT "Game_ended" as e;
+	select description from Cards join Card_types on card_type_id = Card_types.id where Cards.id not in (select card_id from Player_cards join Cards on card_id = id where game_id = g_id) and game_id = g_id group by card_type_id;
+	select login as 'winner' from Players where game_id = g_id and id in (select player_id from Current_moves);
+	LEAVE game_state; 
+END IF;
+
+IF not exists(select login from Players where login = lg) THEN
+	select 'Этот игрок не в комнате';
+	Leave game_state;
+END IF;
+
+IF (not game_started(g_id)) THEN
+	SELECT 'Игра еще не начата';
+	Leave game_state;
+END IF;
+
+IF get_lock('end',3) THEN
+IF (current_timestamp() >= (select end as e from Current_moves where player_id in (select id from Players where game_id = g_id))) THEN
+start transaction;
+select 'игрок пропускает ход' as e;
+	set left_player_id = (select player_id from Current_moves where player_id in (select id from Players where game_id = g_id) limit 1);
+	Update Current_moves set dice_number = 0, end = current_timestamp() + (15 * 100) where player_id = left_player_id;		
+	Update Current_moves set player_id = (select id from Players where game_id = g_id and number = next_player
+		((select number from Players where id = left_player_id and game_id = g_id)
+	, g_id)), end = end where player_id = left_player_id;	
+commit;
+	DO RELEASE_LOCK('end');
+	Leave game_state;
+END if;
+END IF;
+  
+select card_type_id, description from Notes 
+	join Cards on card_id = Cards.id 
+	join Players on Notes.player_id = Players.id 
+	join Card_types on card_type_id = Card_types.id 
+	where Cards.game_id = g_id 
+		and card_id not in (select persona from Players where Players.game_id = g_id) 
+		and login = lg
+	order by player_id;
+
+Select number,login,cell_id from Players where game_id = g_id and not isnull(cell_id) order by number asc;
+
+
+Select timestampdiff(second,current_timestamp(),end) as end,dice_number,player_id,login from Current_moves join Players on player_id = Players.id where player_id in (select id from Players where game_id = g_id and not isnull(cell_id)) and player_id not in(select id from Players join Accusations where accusing_player_id = id);
+
+select neighbor_cell_id as avaliable_cells from Cells_around where cell_id = (select cell_id from Players where login = lg and game_id = g_id and not isnull(cell_id));
+
+select 'Текущее обвинения';
+select login as assuming_player,
+Card_types.description as supposed_persona,
+ct.description as weapon,
+c_t.description as room
+from Current_assumptions 
+join Players on Players.id = assuming_player_id
+join Cards on Cards.id = supposed_persona
+join Card_types on Cards.card_type_id = Card_types.id
+join Cards as c on c.id = Current_assumptions.card_id
+join Card_types as ct on c.card_type_id = ct.id
+join Rooms on Rooms.cell_id = Current_assumptions.cell_id
+join Cards as c_s on Rooms.card_id = c_s.id
+join Card_types as c_t on c_s.card_type_id = c_t.id
+where Players.game_id = g_id and Cards.game_id = g_id and c.game_id = g_id and c_s.game_id = g_id;
+
+select 'Все разоблачения';
+select login as assuming_player,
+Card_types.description as supposed_persona,
+ct.description as weapon,
+c_t.description as room
+from Accusations
+join Players on Players.id = accusing_player_id
+join Cards on Cards.id = accused_persona
+join Card_types on Cards.card_type_id = Card_types.id
+join Cards as c on c.id = Accusations.card_id
+join Card_types as ct on c.card_type_id = ct.id
+join Rooms on Rooms.cell_id = Accusations.cell_id
+join Cards as c_s on Rooms.card_id = c_s.id
+join Card_types as c_t on c_s.card_type_id = c_t.id
+where Players.game_id = g_id and Cards.game_id = g_id and c.game_id = g_id and c_s.game_id = g_id;
+END
+
+
+
+#DROP PROCEDURE make_move;
+CREATE PROCEDURE `make_move`(tk INT UNSIGNED, g_id INT UNSIGNED, destination INT UNSIGNED) 
+make_move: 
+BEGIN 
+DECLARE lg VARCHAR(100) DEFAULT check_token(tk); 
+DECLARE pos INT UNSIGNED; 
+DECLARE dices INT UNSIGNED;
+
+IF lg IS null THEN 
+	SELECT "Authorization error"; 
+	LEAVE make_move; 
+END IF; 
+
+IF (not game_started(g_id)) THEN 
+	SELECT 'Игра еще не начата'; 
+	Leave make_move; 
+END IF;
+
+IF EXISTS(select * from Players where number = 0 and g_id = 0) THEN 
+	SELECT "Game_ended" as e; 
+	LEAVE make_move; 
+END IF;
+
+IF((select id from Players where game_id = g_id and login = lg) in (select accusing_player_id from Accusations)) THEN
+	SELECT 'ВЫ ПРОИГРАЛИ' as e;
+	LEAVE make_move;
+END IF; 
+
+If not check_turn(tk,g_id) THEN
+	SELECT 'Not your turn' as e;
+	LEAVE make_move;
+END IF;
+
+set dices = (select dice_number from Current_moves where player_id in (select id from Players where game_id = g_id and login = lg) limit 1);
+
+IF dices = 7 THEN
+	SELECT 'На этом ходу больше ходить нельзя';
+	LEAVE make_move;
+END IF;
+
+
+set pos = (select cell_id from Players where game_id = g_id and login = lg limit 1);
+IF (NOT EXISTS(select * from Cells_around where cell_id = pos and neighbor_cell_id = destination)) THEN 
+	SELECT 'Неправильное значение клетки'; 
+	LEAVE make_move;
+ELSE 
+	set dices = dices - 1;
+	IF dices = 0 THEN 
+		set dices = 7;
+	END IF;
+END IF;
+
+start transaction;
+	update Players set cell_id = destination where game_id = g_id and login = lg;
+	update Current_moves set dice_number = dices, end=end where player_id in (select id from Players where game_id = g_id); 
+commit; 
+
+	select 'Теперь вы на новой клетке'; 
+	select neighbor_cell_id as avaliable_cells from Cells_around where cell_id = destination;
+	select dice_number from Current_moves where player_id in (select id from Players where game_id = g_id and login = lg);  
+
+
+END
+
+
+
+
+#DROP PROCEDURE throw_dices;
+CREATE  PROCEDURE `throw_dices`(tk INT UNSIGNED, g_id INT UNSIGNED) 
+throw_dices: 
+BEGIN 
+DECLARE lg VARCHAR(100) DEFAULT check_token(tk); 
+DECLARE playerId int; 
+DECLARE dices int;
+
+IF lg IS null THEN 
+	SELECT "Authorization error"; 
+	LEAVE throw_dices; 
+END IF; 
+
+IF EXISTS(select * from Players where number = 0 and g_id = 0) THEN
+	select 'Этот игрок не в игре'; 
+	Leave throw_dices;
+END IF; 
+
+IF (not game_started(g_id)) THEN 
+	SELECT 'Игра еще не начата'; 
+	Leave throw_dices; 
+END IF; 
+
+IF NOT EXISTS(select * from Games where id = g_id) THEN 
+	SELECT "Game_ended" as e; 
+	LEAVE throw_dices; 
+END IF;
+
+IF((select id from Players where game_id = g_id and login = lg) in (select accusing_player_id from Accusations)) THEN
+	SELECT 'ВЫ ПРОИГРАЛИ' as e;
+	LEAVE throw_dices;
+END IF; 
+
+
+
+If not check_turn(tk,g_id) THEN
+	SELECT 'Not your turn' as e;
+	LEAVE throw_dices;
+END IF;
+
+
+set playerId = (select id from Players where game_id = g_id and login = lg limit 1);
+set dices = FLOOR(RAND()*(6)) + 1;
+
+if (select dice_number from Current_moves where player_id = playerId) != 0 THEN
+	SELECT 'Вы уже бросили кости' as e;
+	LEAVE throw_dices;
+END IF;
+
+
+Update Current_moves set dice_number = dices  end = end, where player_id = playerId; 
+
+select dices;
+
+select neighbor_cell_id as avaliable_cells from Cells_around where cell_id = (select cell_id from Players where login = lg and game_id = g_id); 
+
+END
+
+
+
+#DROP PROCEDURE end_turn;
+CREATE  PROCEDURE `end_turn`(tk INT UNSIGNED, g_id INT UNSIGNED) 
+end_turn: 
+BEGIN 
+DECLARE lg VARCHAR(100) DEFAULT check_token(tk); 
+DECLARE playerId int; 
+DECLARE numberOfPlayer tinyint;
+DECLARE nextPlayer int;
+
+IF lg IS null THEN 
+	SELECT "Authorization error"; 
+	LEAVE end_turn; 
+END IF; 
+
+IF not exists(select login from Players where login = lg) THEN 
+	select 'Этот игрок не в игре'; 
+	Leave end_turn;
+END IF; 
+
+IF (not game_started(g_id)) THEN 
+	SELECT 'Игра еще не начата'; 
+	Leave end_turn; 
+END IF; 
+
+
+IF EXISTS(select * from Players where number = 0 and g_id = 0) THEN
+	SELECT "Game_ended" as e; 
+	LEAVE end_turn; 
+END IF;
+
+IF((select id from Players where game_id = g_id and login = lg) in (select accusing_player_id from Accusations)) THEN
+	SELECT 'ВЫ ПРОИГРАЛИ' as e;
+	LEAVE end_turn;
+END IF; 
+
+If not check_turn(tk,g_id) THEN
+	SELECT 'Not your turn' as e;
+	LEAVE end_turn;
+END IF;
+
+
+
+set playerId = (select id from Players where game_id = g_id and login = lg limit 1);
+set numberOfPlayer = (select number from Players where game_id = g_id and login = lg limit 1);
+
+START TRANSACTION;
+
+Update Current_moves set end = current_timestamp() + (15 * 100), dice_number = 0 where player_id = playerId;
+Update Current_moves set end = end, player_id = (select id from Players where game_id = g_id and number = next_player(numberOfPlayer,g_id)) where player_id = playerId;
+
+delete from Current_assumptions where assuming_player_id = playerId;
+
+commit;
+
+END
+
+
+
+#drop procedure make_assumption;
+CREATE  PROCEDURE `make_assumption`(tk INT UNSIGNED, g_id INT UNSIGNED, pers INT UNSIGNED, tool INT UNSIGNED)
+COMMENT 'Сделать предположение. Параметры: токен, айди игры, айди персонажа, айди орудия'  
+make_assumption: 
+BEGIN 
+DECLARE lg VARCHAR(100) DEFAULT check_token(tk); 
+DECLARE playerId int; 
+DECLARE persona_card_id int;
+DECLARE tool_card_id int;
+
+IF lg IS null THEN 
+	SELECT "Authorization error" as e; 
+	LEAVE make_assumption; 
+END IF; 
+
+IF not exists(select login from Players where login = lg) THEN 
+	select 'Этот игрок не в игре' as e; 
+	Leave make_assumption;
+END IF; 
+
+IF (not game_started(g_id)) THEN 
+	SELECT 'Игра еще не начата' as e; 
+	Leave make_assumption; 
+END IF;
+
+IF EXISTS(select * from Players where number = 0 and g_id = 0) THEN
+	SELECT "Game_ended" as e; 
+	LEAVE make_assumption; 
+END IF;
+
+IF((select id from Players where game_id = g_id and login = lg) in (select accusing_player_id from Accusations)) THEN
+	SELECT 'ВЫ ПРОИГРАЛИ' as e;
+	LEAVE make_assumption;
+END IF;  
+
+If not check_turn(tk,g_id) THEN
+	SELECT 'Not your turn' as e;
+	LEAVE make_assumption;
+END IF;
+
+set playerId = (select id from Players where game_id = g_id and login = lg limit 1);
+
+IF EXISTS(select * from Current_assumptions where assuming_player_id = playerId) THEN
+	SELECT 'ВЫ УЖЕ СДЛАЛИ ПРЕДПОЛОЖЕНИЕ' as e;
+	leave make_assumption;
+END IF;
+
+if NOT EXISTS (select * from Cards 
+join Rooms on Cards.id = Rooms.card_id 
+join Card_types on card_type_id = Card_types.id 
+join Players on Rooms.cell_id = Players.cell_id
+where Cards.game_id = g_id and Rooms.cell_id = (select cell_id from Players where id = playerId)) THEN
+	select 'Игрок должен находиться в комнате' as e;
+	Leave make_assumption;
+END IF;
+
+IF not(select tool in (select id from Card_types where type='tool')) THEN
+	select 'Инструмент выбран неправильно' as e;
+	Leave make_assumption;
+END IF;
+
+IF not(select pers in (select id from Card_types where type='persona')) THEN
+	select 'Подозреваемый персонаж выбран неправильно' as e;
+	Leave make_assumption;
+END IF;
+
+CREATE TEMPORARY TABLE tmp(card_type_id int, login varchar(100),card_id int,player_id int);
+
+set persona_card_id = (select Cards.id from Cards
+join Card_types on card_type_id = Card_types.id
+where Cards.game_id = g_id and card_type_id = pers and Cards.id not in (select persona from Players where game_id = g_id));
+
+set tool_card_id = (select Cards.id from Cards
+join Card_types on card_type_id = Card_types.id
+where Cards.game_id = g_id and card_type_id = tool);
+
+
+start transaction;
+UPDATE Current_moves SET dice_number = 7, end = end where player_id in (select id from Players where game_id = g_id);
+delete from Current_assumptions where assuming_player_id = playerId;
+#select tool_card_id, persona_card_id;
+insert into Current_assumptions values(playerId, persona_card_id, tool_card_id, (select cell_id from Players where id = playerId));
+
+insert into tmp
+	select card_type_id,login,Cards.id,Players.id as player_id from Cards 
+	join Card_types on card_type_id = Card_types.id
+	join Player_cards on Player_cards.card_id = Cards.id
+	join Players on player_id = Players.id
+	where Cards.game_id = g_id  and Players.game_id = g_id
+	and player_id in (select id from Players where Players.game_id = g_id and id != playerId)
+	and Cards.id not in (select persona from Players where Players.game_id = g_id)
+	and Cards.id in (persona_card_id, tool_card_id, (select id from Cards join Rooms on card_id = Cards.id where cell_id = (select cell_id from Players where id = playerId) and Cards.game_id = g_id))
+        and Cards.id not in (select card_id from Player_cards where player_id = playerId) 
+	order by rand() limit 1;
+
+if exists(select * from tmp) THEN
+	insert into Player_cards select playerId,card_id from tmp;
+	insert into Notes select playerId, card_id from tmp;
+	select 'Вы получили карту';
+	select login as from_player, description from tmp join Card_types on card_type_id = id;
+ELSE
+	select 'вы не узнали ничего нового' as res;
+END IF;
+commit;
+
+DROP TEMPORARY TABLE tmp;
+	
+END
+
+
+
+
+#drop procedure make_accusation;
+CREATE  PROCEDURE `make_accusation`(tk INT UNSIGNED, g_id INT UNSIGNED, pers INT UNSIGNED, tool INT UNSIGNED, room int unsigned)
+COMMENT 'Сделать обвинение. Параметры: токен, айди игры, айди персонажа, айди орудия, айди комнаты'  
+make_accusation: 
+BEGIN 
+DECLARE lg VARCHAR(100) DEFAULT check_token(tk); 
+DECLARE playerId int; 
+DECLARE persona_card_id int;
+DECLARE tool_card_id int;
+
+IF lg IS null THEN 
+	SELECT "Authorization error" as e; 
+	LEAVE make_accusation; 
+END IF; 
+
+IF not exists(select login from Players where login = lg) THEN 
+	select 'Этот игрок не в игре' as e; 
+	Leave make_accusation;
+END IF; 
+
+IF (not game_started(g_id)) THEN 
+	SELECT 'Игра еще не начата' as e; 
+	Leave make_accusation; 
+END IF; 
+
+IF EXISTS(select * from Players where number = 0 and game_id = g_id) THEN
+	SELECT "Game_ended" as e; 
+	LEAVE make_accusation; 
+END IF;
+
+IF((select id from Players where game_id = g_id and login = lg) in (select accusing_player_id from Accusations)) THEN
+	SELECT 'ВЫ ПРОИГРАЛИ' as e;
+	LEAVE make_accusation;
+END IF; 
+
+If not check_turn(tk,g_id) THEN
+	SELECT 'Not your turn' as e;
+	LEAVE make_accusation;
+END IF;
+
+set playerId = (select id from Players where game_id = g_id and login = lg limit 1);
+
+IF not(select room in (select id from Card_types where type='room')) THEN
+	select 'Подозреваемая комната выбрана неправильно' as e;
+	Leave make_accusation;
+END IF;
+
+IF not(select tool in (select id from Card_types where type='tool')) THEN
+	select 'Инструмент выбран неправильно' as e;
+	Leave make_accusation;
+END IF;
+
+IF not(select pers in (select id from Card_types where type='persona')) THEN
+	select 'Подозреваемый персонаж выбран неправильно' as e;
+	Leave make_accusation;
+END IF;
+
+set persona_card_id = (select Cards.id from Cards
+join Card_types on card_type_id = Card_types.id
+where Cards.game_id = g_id and card_type_id = pers and Cards.id not in (select persona from Players where game_id = g_id));
+
+set tool_card_id = (select Cards.id from Cards
+join Card_types on card_type_id = Card_types.id
+where Cards.game_id = g_id and card_type_id = tool);
+
+start transaction;
+
+insert into Accusations values(playerId, persona_card_id, tool_card_id, (select cell_id from Rooms join Cards on Cards.id = Rooms.card_id where game_id = g_id and card_type_id = room));
+
+IF (check_win_combination(g_id,pers,tool,room)) THEN
+	SELECT 'YOU WON' as res;
+	UPDATE Players set number = 0 where id = playerId;
+ELSE
+	SELECT 'YOU LOST' as res;
+	
+	IF (((select count(*) from Players where game_id = g_id) - (select count(*) from Accusations where accusing_player_id in (select id from Players where game_id = g_id)) = 1)) THEN
+		UPDATE Players set number = 0 where id = playerId;
+	ELSE
+    delete from Current_moves where player_id = playerId;
+		Insert into Current_moves values(NOW() + (15 * 100),0, (select id from Players where game_id = g_id and number = next_player((select number from Players where id = playerId),g_id)));
+		UPDATE Players set cell_id = null where id = playerId;
+end if;
+END IF;
+
+commit;
+	
+END
+
+
+
+#drop procedure end_game;
+CREATE  PROCEDURE `end_game`(tk int UNSIGNED, g_id INT UNSIGNED)
+end_game: 
+BEGIN 
+DECLARE lg VARCHAR(100) DEFAULT check_token(tk); 
+
+IF NOT EXISTS(SELECT * FROM Game_admins WHERE login = lg AND game_id = g_id) THEN
+	SELECT 'Игру может закончить только админ' AS error;
+	SELECT login as admin from Game_admins where game_id = g_id;
+	LEAVE end_game;
+END IF;
+
+IF NOT(check_room(g_id)) THEN 
+	SELECT 'Такой игры не существует' AS error; 
+	LEAVE end_game; 
+END IF; 
+
+IF (not game_started(g_id)) THEN 
+	SELECT 'Игра еще не начата' as e; 
+	Leave end_game; 
+END IF; 
+
+
+start transaction;
+
+Delete from Accusations where accusing_player_id in (select id from Players where game_id = g_id);
+
+Delete from Current_assumptions where assuming_player_id in (select id from Players where game_id = g_id);
+
+Delete from Current_moves where player_id in (select id from Players where game_id = g_id);
+
+Delete from Rooms where card_id in (select id from Cards where game_id = g_id);
+
+select * from Notes where card_id in (select id from Cards where game_id = g_id);
+
+Delete from Notes where player_id in (select id from Players where game_id = g_id);
+
+select * from Notes where card_id in (select id from Cards where game_id = g_id);
+
+Delete from Player_cards where player_id in (select id from Players where game_id = g_id);
+
+Delete from Players where game_id = g_id;
+
+Delete from Cards where game_id = g_id;
+
+Delete from Game_admins where game_id = g_id;
+
+Delete from Games where id = g_id;
+
+commit;
+	
+END
+
+
+
+
+#DROP PROCEDURE show_all_cards;
+CREATE  PROCEDURE `show_all_cards`()
+COMMENT 'Здесь вы можете посмотреть айди карт, когда будете делать обвинение или предположение'
+show_all_cards: 
+BEGIN 
+
+select id,type,description from Card_types;
+
+END
